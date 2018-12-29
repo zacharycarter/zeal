@@ -1,5 +1,5 @@
-import  engine_types, material,
-        tables,
+import  strutils, tables,
+        engine_types, material, 
         bgfxdotnim
 
 const BGFX_INVALID_HANDLE = uint16.high
@@ -13,8 +13,22 @@ proc shaderVersion(p: Program, version: Version): ShaderVersion =
   result = newShaderVersion(p)
   result.options = version.version
 
+proc programDefines(p: Program, version: ShaderVersion): string =
+  for option in 0 ..< 32:
+    if (version.options and (1 shl option)) > 0:
+      result &= p.optionNames[option] & ";"
+
+  for mode in 0 ..< len(p.modeNames):
+    result &= p.modeNames[mode] & "=" & intToStr(version.modes[mode]) & ";"
+
+  for define in p.defines:
+    result &= define.name & "=" & define.value & ";"
+
 proc compile(p: Program, version: Version, compute: bool) =
   let config = p.shaderVersion(version)
+
+  let suffix = "_v" & intToStr(version.version)
+  let defs = p.programDefines(config)
 
 proc updateVersions*(p: Program) =
   for _, version in p.versions:

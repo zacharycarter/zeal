@@ -22,8 +22,8 @@ type
     skCompute, skFragment, skGeometry, skVertex, skCount
   
   ShaderDefine = object
-    name: string
-    value: string
+    name*: string
+    value*: string
   
   ShaderBlock* = object
     options*: seq[string]
@@ -48,9 +48,12 @@ type
     compute*: bool
     blocks*: ProgramBlockArray
     optionNames*: seq[string]
+    modeNames*: seq[string]
+    defines*: seq[ShaderDefine]
     update*: int
     versions*: Table[int, Version]
 
   ShaderVersion* = object
     program*: Program
     options*: int
+    modes*: array[4, int]
