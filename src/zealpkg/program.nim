@@ -1,8 +1,15 @@
-import  strutils, tables,
+import  strutils, os, tables,
         engine_types, material, 
         bgfxdotnim
 
-const BGFX_INVALID_HANDLE = uint16.high
+const 
+  BGFX_INVALID_HANDLE = uint16.high
+  SHADER_SUFFIXES = [
+    "_cs.sc",
+    "_fs.sc",
+    "_gs.sc",
+    "_vs.sc",
+  ]
 
 proc newShaderVersion(program: Program): ShaderVersion =
   result = ShaderVersion(
@@ -24,11 +31,53 @@ proc programDefines(p: Program, version: ShaderVersion): string =
   for define in p.defines:
     result &= define.name & "=" & define.value & ";"
 
+proc shaderSuffix(shaderKind: ShaderKind): string =
+  result = SHADER_SUFFIXES[shaderKind.ord]
+
+proc shaderPath(name: string, shaderKind: ShaderKind): string =
+  let suffix = shaderSuffix(shaderKind)
+  result = "" & "shaders/" & name & suffix
+
+proc compileShader(name: string, suffix: string, shaderKind: ShaderKind, definesIn: string, source: string): bool =
+  let defines = definesIn
+  let isOpenGL = bgfx_get_renderer_type() == BGFX_RENDERER_TYPE_OPENGLES or
+                  bgfx_get_renderer_type() == BGFX_RENDERER_TYPE_OPENGL
+
+  let sourcePath = shaderPath(name, shaderKind)
+
+  if len(source) > 0:
+    writeFile(sourcePath, source)
+
+  var outputSuffixes {.global.} = ["_cs", "_fs", "_gs", "_vs"]
+
+  let outputSuffix = outputSuffixes[shaderKind.ord]
+  let outputPath = "" & "shaders/compiled" & name & suffix & outputSuffix
+
+  try:
+    createDir(outputPath)
+  except OSError:
+    echo "failed creating output dir for compiled shader"
+    return false
+  
+  let incl = "" & "shaders/"
+  let varyingPath = "" & "shaders/varying.def.sc"
+
+  type Target = enum
+    GLSL, ESSL, HLSL, Metal
+  
+  when defined(macosx):
+    let target = if isOpenGL: GLSL else: Metal
+    
+
+
 proc compile(p: Program, version: Version, compute: bool) =
   let config = p.shaderVersion(version)
 
   let suffix = "_v" & intToStr(version.version)
   let defs = p.programDefines(config)
+
+  var compiled = true
+  compiled = compiled and compileShader(p.name, suffix, skVertex, defs, p.sources[skVertex.ord])
 
 proc updateVersions*(p: Program) =
   for _, version in p.versions:

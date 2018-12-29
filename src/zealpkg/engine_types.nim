@@ -51,6 +51,7 @@ type
     modeNames*: seq[string]
     defines*: seq[ShaderDefine]
     update*: int
+    sources*: array[skCount.ord, string]
     versions*: Table[int, Version]
 
   ShaderVersion* = object
