@@ -1,4 +1,11 @@
-import  tables, bgfxdotnim
+import  tables, strutils, 
+        bgfxdotnim
+
+proc currentSourceDir*(): string =
+  result = currentSourcePath()
+  result = result[0 ..< result.rfind("/")]
+
+const ZEAL_DATA_DIR* = currentSourceDir() & "../data"
 
 type
   PlatformData* = object
@@ -73,9 +80,13 @@ type
     pipeline*: Pipeline
     programs*: Table[string, Program]
     state*: GfxSystemState
+    resourcePaths*: seq[string]
 
 proc newPipelineStep*[T](): T =
   result = new(T)
+
+proc resourcePath*(gfx: GfxCtx): string = 
+  result = gfx.resourcePaths[0]
 
 proc newProgram*(gfx: var GfxCtx, name: string): Program =
   if gfx.programs.contains(name):
@@ -85,4 +96,5 @@ proc newProgram*(gfx: var GfxCtx, name: string): Program =
   else:
     result = new(Program)
     result.name = name
+    result.versions = initTable[int, Version]()
     gfx.programs.add(name, result)

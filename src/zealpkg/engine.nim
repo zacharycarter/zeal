@@ -1,11 +1,15 @@
-import  engine_types, gfx
+import  os,
+        engine_types, gfx
 
-proc init*(pd: PlatformData, pk: PipelineKind = pkPbr, width: int = 1280, height: int = 720): bool =
-  result = gfx.init(pd, pk, width, height)
+var 
+  gfxCtx: GfxCtx
+
+proc init*(pd: PlatformData, width: int = 1280, height: int = 720, rps: openArray[string] = [], pk: PipelineKind = pkPbr): bool =
+  result = gfxCtx.init(pd, rps, pk, width, height)
 
 proc shutdown*() =
   gfx.shutdown()
 
 proc update*(): bool =
-  gfx.beginFrame()
+  gfxCtx.beginFrame()
   result = gfx.nextFrame()

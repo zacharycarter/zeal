@@ -3,12 +3,13 @@ import  sequtils, tables,
 
 const RENDER_PASS_ID = 100
 
-var
-  gfx: GfxCtx
-
-proc init*(pd: PlatformData, pk: PipelineKind, w, h: int): bool =
+proc init*(gfx: var GfxCtx, pd: PlatformData, rps: openArray[string], pk: PipelineKind, w, h: int): bool =
   gfx.width = w
   gfx.height = h
+  gfx.resourcePaths = @[ZEAL_DATA_DIR]
+  gfx.resourcePaths.add(rps)
+  gfx.pipeline.steps = @[]
+  gfx.programs = initTable[string, Program]()
   
   result = bgfx.init(pd, w, h)
 
@@ -18,13 +19,13 @@ proc init*(pd: PlatformData, pk: PipelineKind, w, h: int): bool =
   return true
 
 proc newFrame(frame: uint32, time: float, deltaTime: float, renderPass: int): RenderFrame = 
-  result = (frame: gfx.state.frame, time: gfx.state.lastTime, deltaTime: gfx.state.deltaTime, renderPass: RENDER_PASS_ID, numDrawCalls: 0, numVertices: 0, numTriangles: 0)
+  result = (frame: frame, time: time, deltaTime: deltaTime, renderPass: RENDER_PASS_ID, numDrawCalls: 0, numVertices: 0, numTriangles: 0)
 
-proc beginFrame*() =
+proc beginFrame*(gfx: var GfxCtx) =
   let frame = newFrame(gfx.state.frame, gfx.state.lastTime, gfx.state.deltaTime, RENDER_PASS_ID)
 
   for _, program in gfx.programs:
-    program.updateVersions()
+    gfx.updateVersions(program)
 
   for step in gfx.pipeline.steps:
     step.beginFrame(frame)

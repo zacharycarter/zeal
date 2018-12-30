@@ -55,7 +55,7 @@ proc shaderPath(name: string, shaderKind: ShaderKind): string =
   let suffix = shaderSuffix(shaderKind)
   result = "" & "shaders/" & name & suffix
 
-proc compileShader(name: string, suffix: string, shaderKind: ShaderKind, definesIn: string, source: string): bool =
+proc compileShader(gfx: GfxCtx, name: string, suffix: string, shaderKind: ShaderKind, definesIn: string, source: string): bool =
   var defines = definesIn
   let isOpenGL = bgfx_get_renderer_type() == BGFX_RENDERER_TYPE_OPENGLES or
                   bgfx_get_renderer_type() == BGFX_RENDERER_TYPE_OPENGL
@@ -68,7 +68,7 @@ proc compileShader(name: string, suffix: string, shaderKind: ShaderKind, defines
   var outputSuffixes {.global.} = ["_cs", "_fs", "_gs", "_vs"]
 
   let outputSuffix = outputSuffixes[shaderKind.ord]
-  let outputPath = "" & "shaders/compiled" & name & suffix & outputSuffix
+  let outputPath = gfx.resourcePath() & "shaders/compiled" & name & suffix & outputSuffix
 
   try:
     createDir(outputPath)
@@ -125,6 +125,7 @@ proc compileShader(name: string, suffix: string, shaderKind: ShaderKind, defines
 
 proc loadMem(filePath: string): ptr bgfx_memory_t =
   var f: File
+
   try:
     f = open(filePath)
   except IOError:
@@ -154,18 +155,18 @@ proc loadProgram(shaderPath: string): bgfx_program_handle_t =
 
   let program = bgfx_create_program(vertexShader, fragmentShader, true)
 
-proc compile(p: Program, version: var Version, compute: bool) =
+proc compile(gfx: GfxCtx, p: Program, version: var Version) =
   let config = p.shaderVersion(version)
 
   let suffix = "_v" & intToStr(version.version)
   let defs = p.programDefines(config)
 
   var compiled = true
-  compiled = compiled and compileShader(p.name, suffix, skVertex, defs, p.sources[skVertex.ord])
-  compiled = compiled and compileShader(p.name, suffix, skFragment, defs, p.sources[skFragment.ord])
+  compiled = compiled and compileShader(gfx, p.name, suffix, skVertex, defs, p.sources[skVertex.ord])
+  compiled = compiled and compileShader(gfx, p.name, suffix, skFragment, defs, p.sources[skFragment.ord])
 
   if fileExists(shaderPath(p.name, skGeometry)):
-    compiled = compiled and compileShader(p.name, suffix, skGeometry, defs, p.sources[skGeometry.ord])
+    compiled = compiled and compileShader(gfx, p.name, suffix, skGeometry, defs, p.sources[skGeometry.ord])
 
   let fullName = p.name & suffix
 
@@ -177,10 +178,10 @@ proc compile(p: Program, version: var Version, compute: bool) =
   version.program = loadProgram(compiledPath)
   version.update = p.update
 
-proc updateVersions*(p: Program) =
+proc updateVersions*(gfx: GfxCtx, p: Program) =
   for _, version in p.versions.mpairs:
     if version.update < p.update:
-      p.compile(version, p.compute)
+      compile(gfx, p, version)
 
 proc registerOptions(p: var Program, b: int, options: openArray[string]) =
   p.blocks.shaderBlocks[b].optionShift = len(p.optionNames)
