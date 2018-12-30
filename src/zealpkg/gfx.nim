@@ -3,45 +3,30 @@ import  sequtils, tables,
 
 const RENDER_PASS_ID = 100
 
-# const ZEAL_GFX_STATE_DEFAULT = 0 or 
-#         BGFX_STATE_WRITE_RGB or 
-#         BGFX_STATE_WRITE_A or 
-#         BGFX_STATE_DEPTH_TEST_LEQUAL or 
-#         BGFX_STATE_WRITE_Z or
-#         BGFX_STATE_CULL_CW or
-#         BGFX_STATE_MSAA
-
-# const ZEAL_GFX_STATE_DEFAULT_ALPHA = 0 or 
-#               BGFX_STATE_WRITE_RGB or 
-#               BGFX_STATE_WRITE_A or 
-#               BGFX_STATE_DEPTH_TEST_LESS or 
-#               BGFX_STATE_MSAA or
-#               BGFX_STATE_BLEND_ALPHA.int64
-
 var
-  width, height: int
-  gfxPipeline: Pipeline
-  programs: Table[string, Program]
-  state: GfxSystemState
+  gfx: GfxCtx
 
-proc init*(pd: PlatformData, w, h: int): bool =
-  width = w
-  height = h
+proc init*(pd: PlatformData, pk: PipelineKind, w, h: int): bool =
+  gfx.width = w
+  gfx.height = h
   
   result = bgfx.init(pd, w, h)
+
+  if pk == pkPbr:
+    pbr(gfx)
 
   return true
 
 proc newFrame(frame: uint32, time: float, deltaTime: float, renderPass: int): RenderFrame = 
-  result = (frame: state.frame, time: state.lastTime, deltaTime: state.deltaTime, renderPass: RENDER_PASS_ID, numDrawCalls: 0, numVertices: 0, numTriangles: 0)
+  result = (frame: gfx.state.frame, time: gfx.state.lastTime, deltaTime: gfx.state.deltaTime, renderPass: RENDER_PASS_ID, numDrawCalls: 0, numVertices: 0, numTriangles: 0)
 
 proc beginFrame*() =
-  let frame = newFrame(state.frame, state.lastTime, state.deltaTime, RENDER_PASS_ID)
+  let frame = newFrame(gfx.state.frame, gfx.state.lastTime, gfx.state.deltaTime, RENDER_PASS_ID)
 
-  for _, program in programs:
+  for _, program in gfx.programs:
     program.updateVersions()
 
-  for step in gfxPipeline.steps:
+  for step in gfx.pipeline.steps:
     step.beginFrame(frame)
 
 proc nextFrame*(): bool =

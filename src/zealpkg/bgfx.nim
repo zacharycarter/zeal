@@ -19,13 +19,6 @@ proc getFrequency(): int64 =
 
 const frequency = 1000000'u64
 
-type
-  GfxSystemState* = object
-    initialized*: bool
-    frame*: uint32
-    startCounter*: int64
-    deltaTime*, frameTime*, lastTime*: float
-
 var
   state: GfxSystemState
   platformData: ptr bgfx_platform_data_t

@@ -15,6 +15,9 @@ type
     index*: int
     shaderBlock*: ShaderBlock
 
+  PipelineKind* = enum
+    pkPbr, pkCount
+
   Pipeline* = object
     steps*: seq[PipelineStep]
 
@@ -58,3 +61,28 @@ type
     program*: Program
     options*: int
     modes*: array[4, int]
+
+  GfxSystemState* = object
+    initialized*: bool
+    frame*: uint32
+    startCounter*: int64
+    deltaTime*, frameTime*, lastTime*: float
+
+  GfxCtx* = object
+    width*, height*: int
+    pipeline*: Pipeline
+    programs*: Table[string, Program]
+    state*: GfxSystemState
+
+proc newPipelineStep*[T](): T =
+  result = new(T)
+
+proc newProgram*(gfx: var GfxCtx, name: string): Program =
+  if gfx.programs.contains(name):
+    echo "program already exists"
+    result = gfx.programs[name]
+  
+  else:
+    result = new(Program)
+    result.name = name
+    gfx.programs.add(name, result)
