@@ -6,7 +6,12 @@ proc currentSourceDir*(): string =
   result = currentSourcePath()
   result = result[0 ..< result.rfind("/")]
 
-const ZEAL_DATA_DIR* = currentSourceDir() & "../data"
+const 
+  ZEAL_DATA_DIR* = currentSourceDir() & "../data"
+  MAX_LIGHTS* = 64
+  MAX_SHADOWS* = 32
+  MAX_FORWARD_LIGHTS* = 16
+  MAX_DIRECT_LIGHTS* = 1
 
 type
   CArray*[T] = array[0..0, T]
@@ -217,6 +222,55 @@ type
     csm*: CSMShadow
     pcfLevel*: CSMFilterMode
 
+  LightUniform* = object
+    lightPositionRange*: bgfx_uniform_handle_t
+    lightEnergySpecular*: bgfx_uniform_handle_t
+    lightDirectionAttenuation*: bgfx_uniform_handle_t
+    lightShadow*: bgfx_uniform_handle_t
+    lightShadowMatrix*: bgfx_uniform_handle_t
+    lightSpotParams*: bgfx_uniform_handle_t
+    csmMatrix*: bgfx_uniform_handle_t
+    csmSplits*: bgfx_uniform_handle_t
+
+  ShotUniform* = object
+    lightIndices*: bgfx_uniform_handle_t
+    lightCounts*: bgfx_uniform_handle_t
+    lightArray*: LightUniform
+
+  SceneUniform* = object
+    radianceColorEnergy*: bgfx_uniform_handle_t
+    ambientParams*: bgfx_uniform_handle_t
+
+  FogUniform* = object
+    fogParams0*: bgfx_uniform_handle_t
+    fogParams1*: bgfx_uniform_handle_t
+    fogParams2*: bgfx_uniform_handle_t
+    fogParams3*: bgfx_uniform_handle_t
+  
+  LightArray*[numLights: static int, numDirect: static int] = object
+    positionRange: array[numLights, Vec4]
+    energySpecular: array[numLights, Vec4]
+    directionAttenuation: array[numLights, Vec4]
+    shadowColorEnabled: array[numLights, Vec4]
+    shadowMatrix: array[numLights, Mat4]
+    spotParams: array[numLights, Vec4]
+
+    lightIndices: array[numLights, Vec4]
+    lightCounts: Vec4
+
+    csmMatrix: array[4, array[numDirect, Mat4]]
+    csmSplits: array[numDirect, Vec4]
+
+  LightStep* = ref object of DrawStep
+    shadowStep*: ShadowStep
+    directLightIndex*: int
+    directLights*: seq[Light]
+    shot*: ShotUniform
+    scene*: SceneUniform
+    fog*: FogUniform
+    lightsData: LightArray[MAX_LIGHTS, MAX_DIRECT_LIGHTS]
+    lightCount*: int
+
   PipelineKind* = enum
     pkPbr, pkCount
 
@@ -226,7 +280,7 @@ type
   ShaderKind* = enum
     skCompute, skFragment, skGeometry, skVertex, skCount
   
-  ShaderDefine = object
+  ShaderDefine* = object
     name*: string
     value*: string
   
