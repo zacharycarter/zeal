@@ -90,7 +90,7 @@ type
     currentParams: DepthParams
     depthParams: DepthParams
     depthMaterial: Material
-    depthMaterialTwoSided: Material
+    depthMaterialTwosided: Material
 
   EffectBlurUniform* = object
     blurParams*: bgfx_uniform_handle_t
@@ -101,6 +101,20 @@ type
     filter*: FilterStep
     uniform*: EffectBlurUniform
     program*: Program
+
+  GeometryStep* = ref object of DrawStep
+    material: Material
+    materialTwosided: Material
+
+  SkyboxUniform* = object
+    skyboxMatrix*: bgfx_uniform_handle_t
+    skyboxParams*: bgfx_uniform_handle_t
+    skyboxMap*: bgfx_uniform_handle_t
+
+  SkyStep* = ref object of PipelineStep
+    filter*: FilterStep
+    skyboxProgram*: Program
+    skybox: SkyboxUniform
 
   PipelineKind* = enum
     pkPbr, pkCount

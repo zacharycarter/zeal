@@ -1,4 +1,6 @@
-import  engine_types, math, program, render_target, filter, blur, depth,
+import  engine_types, math, program, 
+        render_target, filter, blur, 
+        depth, sky,
         bgfxdotnim
 
 const ZEAL_GFX_STATE_DEFAULT = 0'u64 or 
@@ -29,6 +31,9 @@ proc addStep[T](p: var Pipeline, s: T): T =
   p.steps.add(s)
   result = s
 
+proc newGeometryStep(gfx: var GfxCtx): GeometryStep =
+  result = GeometryStep(newDrawStep[GeometryStep]())
+
 proc pbr*(gfx: var GfxCtx) =
   # filters
   var filter = gfx.pipeline.addStep(newFilterStep(gfx))
@@ -37,3 +42,5 @@ proc pbr*(gfx: var GfxCtx) =
 
   # pipeline
   var depth = gfx.pipeline.addStep(newDepthStep(gfx))
+  var geometry = gfx.pipeline.addStep(newGeometryStep(gfx))
+  var sky = gfx.pipeline.addStep(newSkyStep(gfx, filter))
