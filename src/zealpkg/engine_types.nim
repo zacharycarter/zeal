@@ -325,6 +325,18 @@ type
     atlas*: ReflectionAtlas
     reflectionMultiplier*: float
 
+  GIProbeUniform* = object
+    transform*: bgfx_uniform_handle_t
+    bounds*: bgfx_uniform_handle_t
+    params*: bgfx_uniform_handle_t
+    invExtents*: bgfx_uniform_handle_t
+    cellSize*: bgfx_uniform_handle_t
+    
+    giProbe*: bgfx_uniform_handle_t
+
+  GITraceStep* = ref object of DrawStep
+    giProbe*: GIProbeUniform
+
   PipelineKind* = enum
     pkPbr, pkCount
 
