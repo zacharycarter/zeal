@@ -7,4 +7,6 @@ proc newGITraceStep*(gfx: var GfxCtx): GITraceStep =
   result.shaderStep.options = options
 
 proc newGIBakeStep*(gfx: var GfxCtx, lightStep: var LightStep, giTraceStep: var GITraceStep): GIBakeStep =
-  discard
+  result = GIBakeStep(newDrawStep[GIBakeStep]())
+  result.lightStep = lightStep
+  result.giTraceStep = giTraceStep
