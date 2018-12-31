@@ -4,6 +4,7 @@ import  engine_types, math, program,
         light, reflection, voxel_gi,
         lightmap, particles, image_atlas,
         effects, dof_blur, glow, tonemap,
+        tables,
         bgfxdotnim
 
 const ZEAL_GFX_STATE_DEFAULT = 0'u64 or 
@@ -63,3 +64,39 @@ proc pbr*(gfx: var GfxCtx) =
   var dofBlur = gfx.pipeline.addStep(newDOFBlurStep(gfx, filter))
   var glow = gfx.pipeline.addStep(newGlowStep(gfx, filter, copy, blur))
   var tonemap = gfx.pipeline.addStep(newTonemapStep(gfx, filter, copy))
+
+  let depthSteps = @[PipelineStep(depth)]
+  let geometrySteps: seq[PipelineStep] = @[]
+  let shadingSteps = @[
+    PipelineStep(radiance), 
+    PipelineStep(light), 
+    PipelineStep(shadow), 
+    PipelineStep(giTrace), 
+    PipelineStep(reflection), 
+    PipelineStep(lightmap),
+  ]
+  let giSteps = @[PipelineStep(light), PipelineStep(shadow), PipelineStep(giBake)]
+  let lightmapSteps = @[PipelineStep(light), PipelineStep(shadow), PipelineStep(giTrace), PipelineStep(lightmap)]
+
+  gfx.pipeline.passSteps = initTable[RenderPassKind, seq[PipelineStep]]()
+  gfx.pipeline.passSteps[rpkUnshaded] = @[]
+  gfx.pipeline.passSteps[rpkBackground] = @[PipelineStep(sky)]
+  gfx.pipeline.passSteps[rpkEffects] = @[PipelineStep(resolve)]
+  gfx.pipeline.passSteps[rpkPostProcess] = @[
+    PipelineStep(dofBlur), 
+    PipelineStep(glow), 
+    PipelineStep(tonemap),
+  ]
+
+  gfx.pipeline.passSteps[rpkVoxelGI] = giSteps
+  gfx.pipeline.passSteps[rpkLightmap] = lightmapSteps
+
+  # forward
+  gfx.pipeline.passSteps[rpkDepth] = depthSteps
+  gfx.pipeline.passSteps[rpkOpaque] = shadingSteps
+  gfx.pipeline.passSteps[rpkAlpha] = shadingSteps
+
+  # deferred
+  gfx.pipeline.passSteps[rpkGeometry] = geometrySteps
+  gfx.pipeline.passSteps[rpkLights] = shadingSteps
+

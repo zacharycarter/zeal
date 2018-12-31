@@ -516,6 +516,7 @@ type
 
   Pipeline* = object
     steps*: seq[PipelineStep]
+    passSteps*: Table[RenderPassKind, seq[PipelineStep]]
 
   ShaderKind* = enum
     skCompute, skFragment, skGeometry, skVertex, skCount
