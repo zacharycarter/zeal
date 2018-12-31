@@ -1,4 +1,4 @@
-import  engine_types, program,
+import  engine_types,
         bgfxdotnim
 
 proc createUniforms(): SkyboxUniform =
@@ -9,4 +9,4 @@ proc createUniforms(): SkyboxUniform =
 proc newSkyStep*(gfx: var GfxCtx, filter: FilterStep): SkyStep =
   result = SkyStep(newPipelineStep[SkyStep]())
   result.filter = filter
-  result.skyboxProgram = newProgram("skybox")
+  result.skyboxProgram = gfx.newProgram("skybox")
