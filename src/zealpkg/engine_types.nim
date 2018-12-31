@@ -38,6 +38,42 @@ type
     index*: int
     shaderBlock*: ShaderBlock
 
+  FilterUniform = object
+    source0*: bgfx_uniform_handle_t
+    source1*: bgfx_uniform_handle_t
+    source2*: bgfx_uniform_handle_t
+    source3*: bgfx_uniform_handle_t
+    sourceDepth*: bgfx_uniform_handle_t
+    
+    source0Level*: bgfx_uniform_handle_t
+    source1Level*: bgfx_uniform_handle_t
+    source2Level*: bgfx_uniform_handle_t
+    source3Level*: bgfx_uniform_handle_t
+    sourceDepthLevel*: bgfx_uniform_handle_t
+
+    sourceCrop*: bgfx_uniform_handle_t
+    
+    screenSizePixelSize*: bgfx_uniform_handle_t
+    cameraParams*: bgfx_uniform_handle_t
+
+  FilterStep* = ref object of PipelineStep
+    quadProgram*: Program
+    uniform*: FilterUniform
+
+  CopyStep* = ref object of PipelineStep
+    filter*: FilterStep
+    program*: Program
+
+  EffectBlurUniform* = object
+    blurParams*: bgfx_uniform_handle_t
+    blurKernel03*: bgfx_uniform_handle_t
+    blurKernel47*: bgfx_uniform_handle_t
+
+  BlurStep* = ref object of PipelineStep
+    filter*: FilterStep
+    uniform*: EffectBlurUniform
+    program*: Program
+
   PipelineKind* = enum
     pkPbr, pkCount
 
@@ -53,15 +89,15 @@ type
   
   ShaderBlock* = object
     options*: seq[string]
-    modes: seq[string]
-    defines: seq[ShaderDefine]
+    modes*: seq[string]
+    defines*: seq[ShaderDefine]
 
   ProgramBlock = tuple
     optionShift: int
     modeShift: int
   
-  ProgramBlockArray* = object
-    shaderBlocks*: array[32, ProgramBlock]
+  ProgramStepArray* = object
+    shaderSteps*: array[32, ProgramBlock]
     nextOption: int
   
   Version* = object
@@ -72,7 +108,7 @@ type
   Program* = ref object
     name*: string
     compute*: bool
-    blocks*: ProgramBlockArray
+    steps*: ProgramStepArray
     optionNames*: seq[string]
     modeNames*: seq[string]
     defines*: seq[ShaderDefine]

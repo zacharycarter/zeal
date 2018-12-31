@@ -10,7 +10,7 @@ else:
   const
     shadercdll* = "libbgfx-shared-lib(Debug|Release).so"
 
-import  strutils, os, tables,
+import  strutils, sequtils, os, tables,
         engine_types, material, 
         bgfxdotnim
 
@@ -180,16 +180,27 @@ proc updateVersions*(gfx: GfxCtx, p: Program) =
     if version.update < p.update:
       compile(gfx, p, version)
 
-proc registerOptions(p: var Program, b: int, options: openArray[string]) =
-  p.blocks.shaderBlocks[b].optionShift = len(p.optionNames)
+proc registerOptions(p: var Program, s: int, options: openArray[string]) =
+  p.steps.shaderSteps[s].optionShift = len(p.optionNames)
 
   for option in options:
     p.optionNames.add(option)
 
+proc registerModes(p: var Program, s: int, modes: openArray[string]) =
+  p.steps.shaderSteps[s].modeShift = len(p.modeNames)
+
+  for mode in modes:
+    p.modeNames.add(mode)
+
 proc newVersion(): Version =
   result.program.idx = BGFX_INVALID_HANDLE
 
-proc newProgram(name: string, compute: bool = false): Program =
+proc registerStep*(p: var Program, step: var PipelineStep) =
+  p.registerOptions(step.index, step.shaderBlock.options)
+  p.registerModes(step.index, step.shaderBlock.modes)
+  p.defines.insert(step.shaderBlock.defines)
+
+proc newProgram*(name: string, compute: bool = false): Program =
   result.name = name
   result.compute = compute
   result.update = 1

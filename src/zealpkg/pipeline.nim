@@ -1,4 +1,4 @@
-import  engine_types, math, program, render_target, filter,
+import  engine_types, math, program, render_target, filter, blur,
         bgfxdotnim
 
 const ZEAL_GFX_STATE_DEFAULT = 0'u64 or 
@@ -25,11 +25,11 @@ proc beginPass*(s: PipelineStep, r: var Render) =
 proc beginRender*(s: PipelineStep, r: var Render) =
   discard r
 
-
-
-proc addStep(p: var Pipeline, s: PipelineStep): PipelineStep =
+proc addStep[T](p: var Pipeline, s: T): T =
   p.steps.add(s)
   result = s
 
 proc pbr*(gfx: var GfxCtx) =
-  let filter = gfx.pipeline.addStep(newFilterStep(gfx))
+  var filter = gfx.pipeline.addStep(newFilterStep(gfx))
+  var copy = gfx.pipeline.addStep(newCopyStep(gfx, filter))
+  var blur = gfx.pipeline.addStep(newBlurStep(gfx, filter))
