@@ -1,6 +1,6 @@
 import  engine_types
 
-proc newShadowStep*(gfx: var GfxCtx, depthStep: var DepthStep): ShadowStep =
+proc newShadowStep*(gfx: var GfxCtx, depthStep: DepthStep): ShadowStep =
   result = newDrawStep[ShadowStep]()
   result.depthStep = depthStep
 

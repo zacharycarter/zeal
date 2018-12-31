@@ -6,7 +6,7 @@ proc newGITraceStep*(gfx: var GfxCtx): GITraceStep =
   let options {.global.} = @["GI_CONETRACE"]
   result.shaderStep.options = options
 
-proc newGIBakeStep*(gfx: var GfxCtx, lightStep: var LightStep, giTraceStep: var GITraceStep): GIBakeStep =
+proc newGIBakeStep*(gfx: var GfxCtx, lightStep: LightStep, giTraceStep: GITraceStep): GIBakeStep =
   result = newDrawStep[GIBakeStep]()
   result.lightStep = lightStep
   result.giTraceStep = giTraceStep

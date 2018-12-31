@@ -3,7 +3,7 @@ import  engine_types, math, program,
         depth, sky, radiance, shadow,
         light, reflection, voxel_gi,
         lightmap, particles, image_atlas,
-        effects, dof_blur,
+        effects, dof_blur, glow,
         bgfxdotnim
 
 const ZEAL_GFX_STATE_DEFAULT = 0'u64 or 
@@ -61,3 +61,4 @@ proc pbr*(gfx: var GfxCtx) =
 
   # effects
   var dofBlur = gfx.pipeline.addStep(newDOFBlurStep(gfx, filter))
+  var glow = gfx.pipeline.addStep(newGlowStep(gfx, filter, copy, blur))

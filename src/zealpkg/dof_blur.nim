@@ -1,6 +1,6 @@
 import  engine_types, program
 
-proc newDOFBlurStep*(gfx: var GfxCtx, filterStep: var FilterStep): DOFBlurStep =
+proc newDOFBlurStep*(gfx: var GfxCtx, filterStep: FilterStep): DOFBlurStep =
   result = newPipelineStep[DOFBlurStep]()
   result.filterStep = filterStep
   result.program = gfx.newProgram("filter/dof_blur")

@@ -1,6 +1,6 @@
 import  engine_types, program
 
-proc newRadianceStep*(gfx: var GfxCtx, filter: var FilterStep, copy: var CopyStep): RadianceStep =
+proc newRadianceStep*(gfx: var GfxCtx, filter: FilterStep, copy: CopyStep): RadianceStep =
   result = newDrawStep[RadianceStep]()
   result.filter = filter
   result.copy = copy

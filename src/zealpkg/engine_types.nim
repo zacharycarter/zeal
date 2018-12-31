@@ -484,6 +484,22 @@ type
     uniform*: DOFBlurUniform
     program*: Program
 
+  GlowUniform* = object
+    glowParams0*: bgfx_uniform_handle_t
+    glowParams1*: bgfx_uniform_handle_t
+    glowParams14*: bgfx_uniform_handle_t
+    glowParams58*: bgfx_uniform_handle_t
+
+  GlowStep* = ref object of PipelineStep
+    filterStep*: FilterStep
+    copyStep*: CopyStep
+    blurStep*: BlurStep
+
+    uniform*: GlowUniform
+
+    bleedProgram*: Program
+    mergeProgram*: Program
+
   PipelineKind* = enum
     pkPbr, pkCount
 

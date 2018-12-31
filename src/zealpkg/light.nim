@@ -1,7 +1,7 @@
 import  strutils,
         engine_types
 
-proc newLightStep*(gfx: var GfxCtx, shadowStep: var ShadowStep): LightStep =
+proc newLightStep*(gfx: var GfxCtx, shadowStep: ShadowStep): LightStep =
   result = newDrawStep[LightStep]()
   result.shadowStep = shadowStep
 

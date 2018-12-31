@@ -9,7 +9,7 @@ type
     horizontal: array[7, float]
     vertical: array[5, float]
 
-proc newBlurStep*(gfx: var GfxCtx, filter: var FilterStep): BlurStep =
+proc newBlurStep*(gfx: var GfxCtx, filter: FilterStep): BlurStep =
   result = newPipelineStep[BlurStep]()
   result.filter = filter
   result.program = newProgram("filter/gaussian_blur")
