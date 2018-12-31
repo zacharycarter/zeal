@@ -2,7 +2,10 @@ import  engine_types, pipeline
 
 type
   RenderPassKind* = enum
-    rpkCount
+    rpkVoxelGI, rpkLightmap, rpkShadowmap, rpkProbes, 
+    rpkClear, rpkDepth, rpkGeometry, rpkLights, rpkOpaque, 
+    rpkBackground, rpkParticles, rpkAlpha, rpkUnshaded, 
+    rpkEffects, rpkPostProcess, rpkFlip, rpkCount
 
   RenderPass* = object
     name: string
