@@ -1,5 +1,5 @@
 import  tables, strutils,
-        math,
+        math, geom,
         bgfxdotnim
 
 proc currentSourceDir*(): string =
@@ -142,6 +142,81 @@ type
     prefilterQueue*: seq[Radiance]
     prefiltered*: Table[uint16, uint16]
 
+  DirectionalShadowUniform* = object
+    csmAtlas*: bgfx_uniform_handle_t
+    csmParams*: bgfx_uniform_handle_t
+
+  ShadowUniform* = object
+    shadowAtlas*: bgfx_uniform_handle_t
+    shadowPixelSize*: bgfx_uniform_handle_t
+
+  CSMFilterMode* = enum
+    csmfmNoPCF, csmfmHardPCF, csmfmPCF5, csmfmPCF13
+
+  CSMShadow* = object
+    size*: int
+    fbo*: bgfx_frame_buffer_handle_t
+    depth*: bgfx_texture_handle_t
+    filterMode*: CSMFilterMode
+
+  ShadowCubemap* = object
+    size: int
+    fbos: array[6, bgfx_frame_buffer_handle_t]
+    cubemap: bgfx_texture_handle_t
+
+  ShadowAtlas* = object
+    size: int
+    depth: bgfx_texture_handle_t
+    fbo: bgfx_frame_buffer_handle_t
+    cubemaps: seq[ShadowCubemap]
+
+  Frustum* = object
+    fov: float
+    aspect: float
+    near: float
+    far: float
+    center: Vec3
+    radius: float
+
+  FrustumSlice* = object
+    index: int
+    frustum: Frustum
+
+  LightBounds* = object
+    min: Vec3
+    max: Vec3
+
+  Item* = object
+    transform: Mat4
+    model: Model
+    skin: int
+
+  Slice* = object
+    viewportRect: Vec4
+    textureRect: Vec4
+    projection: Mat4
+    transform: Mat4
+    shadowMatrix: Mat4
+    biasScale: float
+    frustumSlice: FrustumSlice
+    lightBounds: LightBounds
+    items: seq[Item]
+
+  LightShadow* = object
+    frustumSlices: seq[FrustumSlice]
+    slices: seq[Slice]
+
+  ShadowStep* = ref object of DrawStep
+    depthStep*: DepthStep
+    depthParams*: DepthParams
+    directLight*: Light
+    directShadow*: DirectionalShadowUniform
+    shadow*: ShadowUniform
+    atlas*: ShadowAtlas
+    shadows*: seq[LightShadow]
+    csm*: CSMShadow
+    pcfLevel*: CSMFilterMode
+
   PipelineKind* = enum
     pkPbr, pkCount
 
@@ -179,7 +254,11 @@ type
     builtin: bool
     program: Program
 
+  Model* = ref object
+
   Texture* = ref object
+
+  Light* = ref object
 
   Program* = ref object
     name*: string
