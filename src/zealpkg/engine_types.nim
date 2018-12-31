@@ -34,9 +34,25 @@ type
     target*: RenderTarget
     isMRT*: bool
 
+  RenderPassKind* = enum
+    rpkVoxelGI, rpkLightmap, rpkShadowmap, rpkProbes, 
+    rpkClear, rpkDepth, rpkGeometry, rpkLights, rpkOpaque, 
+    rpkBackground, rpkParticles, rpkAlpha, rpkUnshaded, 
+    rpkEffects, rpkPostProcess, rpkFlip, rpkCount
+
+  RenderPass* = object
+    name: string
+    passKind: RenderPassKind
+    steps: seq[PipelineStep]
+
+  DrawElement* = object
+
   PipelineStep* = ref object of RootObj
     index*: int
-    shaderBlock*: ShaderBlock
+    shaderStep*: ShaderStep
+    drawStep*: bool
+
+  DrawStep* = ref object of PipelineStep
 
   FilterUniform = object
     source0*: bgfx_uniform_handle_t
@@ -64,6 +80,18 @@ type
     filter*: FilterStep
     program*: Program
 
+  DepthParams = ref object
+    depthBias: float
+    depthNormalBias: float
+    depthZFar: float
+    padding: float
+
+  DepthStep* = ref object of DrawStep
+    currentParams: DepthParams
+    depthParams: DepthParams
+    depthMaterial: Material
+    depthMaterialTwoSided: Material
+
   EffectBlurUniform* = object
     blurParams*: bgfx_uniform_handle_t
     blurKernel03*: bgfx_uniform_handle_t
@@ -87,7 +115,7 @@ type
     name*: string
     value*: string
   
-  ShaderBlock* = object
+  ShaderStep* = object
     options*: seq[string]
     modes*: seq[string]
     defines*: seq[ShaderDefine]
@@ -104,6 +132,12 @@ type
     version*: int
     update*: int
     program*: bgfx_program_handle_t
+
+  Material* = ref object
+    index: int
+    name: string
+    builtin: bool
+    program: Program
 
   Program* = ref object
     name*: string
@@ -136,6 +170,16 @@ type
 
 proc newPipelineStep*[T](): T =
   result = new(T)
+
+proc newDrawStep*[T](): DrawStep =
+  result = newPipelineStep[T]()
+  result.drawStep = true
+
+proc submit*[T](ds: T, r: var Render, rp: var RenderPass) =
+  discard
+
+proc submit*[T](ds: T, r: var Render, e: var DrawElement, rp: var RenderPass) =
+  ds.submit(r, rp)
 
 proc resourcePath*(gfx: GfxCtx): string = 
   result = gfx.resourcePaths[0]

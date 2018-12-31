@@ -5,7 +5,7 @@ type
 
 proc newPbrPipelineStep*(): PbrPipelineStep =
   result = newPipelineStep[PbrPipelineStep]()
-  result.shaderBlock.options = @[
+  result.shaderStep.options = @[
     "NORMAL_MAP",
     "EMISSIVE",
     "ANISOTROPY",

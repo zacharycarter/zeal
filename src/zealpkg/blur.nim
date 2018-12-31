@@ -16,5 +16,5 @@ proc newBlurStep*(gfx: var GfxCtx, filter: var FilterStep): BlurStep =
 
   var 
     options {.global.} = @["GAUSSIAN_HORIZONTAL", "GAUSSIAN_VERTICAL"]
-  result.shaderBlock.options = options
+  result.shaderStep.options = options
   result.program.registerStep(PipelineStep(result))

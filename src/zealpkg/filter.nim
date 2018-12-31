@@ -31,7 +31,7 @@ proc newFilterStep*(gfx: var GfxCtx): FilterStep =
     "SOURCE_0_ARRAY",
     "FILTER_DEBUG_UV"
   ]
-  result.shaderBlock.options = options
+  result.shaderStep.options = options
 
 proc drawQuad(size: Vec2, fboFlip: bool) =
   if 3'u32 == bgfx_get_avail_transient_vertex_buffer(3, addr decl()):
@@ -94,7 +94,8 @@ proc submitQuad(fs: FilterStep, target: var FrameBuffer, view: int, program: bgf
   var renderQuad = newRenderQuad(target.sourceQuad(rect), target.destQuad(rect), true)
   fs.submitQuad(target, view, program, renderQuad, flags, render)
 
-proc newCopyStep*(gfx: var GfxCtx, filter: var FilterStep): CopyStep =
+proc newCopyStep*(gfx: var GfxCtx, filter: FilterStep): CopyStep =
+  result = newPipelineStep[CopyStep]()
   result.filter = filter
   result.program = newProgram("filter/copy")
   result.program.registerStep(PipelineStep(filter))

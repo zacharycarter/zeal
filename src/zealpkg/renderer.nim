@@ -1,17 +1,6 @@
 import  engine_types, pipeline
 
 type
-  RenderPassKind* = enum
-    rpkVoxelGI, rpkLightmap, rpkShadowmap, rpkProbes, 
-    rpkClear, rpkDepth, rpkGeometry, rpkLights, rpkOpaque, 
-    rpkBackground, rpkParticles, rpkAlpha, rpkUnshaded, 
-    rpkEffects, rpkPostProcess, rpkFlip, rpkCount
-
-  RenderPass* = object
-    name: string
-    passKind: RenderPassKind
-    steps: seq[PipelineStep]
-
   Renderer* = object
     steps: seq[PipelineStep]
     renderPasses: seq[RenderPass]

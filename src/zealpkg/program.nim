@@ -195,12 +195,13 @@ proc registerModes(p: var Program, s: int, modes: openArray[string]) =
 proc newVersion(): Version =
   result.program.idx = BGFX_INVALID_HANDLE
 
-proc registerStep*(p: var Program, step: var PipelineStep) =
-  p.registerOptions(step.index, step.shaderBlock.options)
-  p.registerModes(step.index, step.shaderBlock.modes)
-  p.defines.insert(step.shaderBlock.defines)
+proc registerStep*(p: var Program, step: PipelineStep) =
+  p.registerOptions(step.index, step.shaderStep.options)
+  p.registerModes(step.index, step.shaderStep.modes)
+  p.defines.insert(step.shaderStep.defines)
 
 proc newProgram*(name: string, compute: bool = false): Program =
+  result = new(Program)
   result.name = name
   result.compute = compute
   result.update = 1
@@ -208,4 +209,4 @@ proc newProgram*(name: string, compute: bool = false): Program =
   let pbr = newPbrPipelineStep()
 
   result.registerOptions(0, ["SKELETON", "INSTANCING", "BILLBOARD", "QNORMALS", "MRT", "DEFERRED", "CLUSTERED"])
-  result.registerOptions(pbr.index, pbr.shaderBlock.options)
+  result.registerOptions(pbr.index, pbr.shaderStep.options)
