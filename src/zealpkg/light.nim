@@ -2,7 +2,7 @@ import  strutils,
         engine_types
 
 proc newLightStep*(gfx: var GfxCtx, shadowStep: var ShadowStep): LightStep =
-  result = LightStep(newDrawStep[LightStep]())
+  result = newDrawStep[LightStep]()
   result.shadowStep = shadowStep
 
   let options {.global.} = @[

@@ -1,7 +1,7 @@
 import  engine_types
 
 proc newShadowStep*(gfx: var GfxCtx, depthStep: var DepthStep): ShadowStep =
-  result = ShadowStep(newDrawStep[ShadowStep]())
+  result = newDrawStep[ShadowStep]()
   result.depthStep = depthStep
 
   let options {.global.} = @[

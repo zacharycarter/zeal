@@ -1,6 +1,6 @@
 import  tables, strutils,
         math, geom,
-        bgfxdotnim
+        bgfxdotnim, rect_packer
 
 proc currentSourceDir*(): string =
   result = currentSourcePath()
@@ -13,6 +13,7 @@ const
   MAX_FORWARD_LIGHTS* = 16
   MAX_DIRECT_LIGHTS* = 1
   MAX_REFLECTION_PROBES* = 16
+  SPRITE_TEXTURE_SIZE* = 2048
 
 type
   CArray*[T] = array[0..0, T]
@@ -389,6 +390,90 @@ type
     bakeProbe*: GIProbe
     directLightCompute*: bool
 
+  LightmapVoxelGIUniform* = object
+    lightmap*: bgfx_uniform_handle_t
+
+  LightmapItem* = object
+    size*: int
+    lightmap*: bgfx_texture_handle_t
+    uvScaleOffset*: Vec4
+
+  Image* = ref object of RootObj
+    name*: string
+    path*: string
+
+    size*: IVec2
+    coord*: IVec2
+
+    handle*: int
+    atlas*: ImageAtlas
+
+    tile*: bool
+    stretch*: bool
+    filtering*: bool
+
+  ImageAtlas* = ref object of RootObj
+    size*: IVec2
+    inverseSize*: Vec2
+
+    image*: Image
+    images*: seq[Image]
+
+    rectPack*: RectPacker
+
+  TextureAtlas* = ref object of ImageAtlas
+    textures*: seq[Image]
+
+  Lightmap* = object
+    size: int
+    density: float
+    dirty: bool
+
+    atlas: TextureAtlas
+    texture: bgfx_texture_handle_t
+
+    items: seq[LightmapItem]
+
+  LightmapAtlas* = ref object
+    size*: int
+    density*: float
+    dirty*: bool
+    savePath*: string
+
+    captureTransform*: Mat4
+    captureExtents*: Vec3
+
+    layers*: seq[Lightmap]
+
+  BakeEntry* = object
+    scene*: Scene
+    atlas*: LightmapAtlas
+
+  LightmapStep* = ref object of DrawStep
+    lightStep*: LightStep
+    giBakeStep*: GIBakeStep
+    lightmapUniform*: LightmapVoxelGIUniform
+    lightmapProgram*: Program
+    bakeQueue*: seq[BakeEntry]
+
+  Sprite* = ref object of Image
+    frames*: IVec2
+    numFrames*: int
+    frameSize*: IVec2
+    frameUVs*: seq[Vec4]
+
+  SpriteAtlas* = ref object of ImageAtlas
+    sprites*: seq[Sprite]
+
+  ParticlesStep* = ref object of PipelineStep
+    sprites*: SpriteAtlas
+    texture*: bgfx_texture_handle_t
+
+    color*: bgfx_uniform_handle_t
+
+  ResolveStep* = ref object of PipelineStep
+    copyStep*: CopyStep
+
   PipelineKind* = enum
     pkPbr, pkCount
 
@@ -464,7 +549,7 @@ type
 proc newPipelineStep*[T](): T =
   result = new(T)
 
-proc newDrawStep*[T](): DrawStep =
+proc newDrawStep*[T](): T =
   result = newPipelineStep[T]()
   result.drawStep = true
 

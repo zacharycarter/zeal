@@ -1,7 +1,7 @@
 import  engine_types, program
 
 proc newRadianceStep*(gfx: var GfxCtx, filter: var FilterStep, copy: var CopyStep): RadianceStep =
-  result = RadianceStep(newDrawStep[RadianceStep]())
+  result = newDrawStep[RadianceStep]()
   result.filter = filter
   result.copy = copy
   result.prefilterProgram = newProgram("filter/prefilter_envmap")

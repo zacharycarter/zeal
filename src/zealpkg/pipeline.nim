@@ -2,6 +2,8 @@ import  engine_types, math, program,
         render_target, filter, blur, 
         depth, sky, radiance, shadow,
         light, reflection, voxel_gi,
+        lightmap, particles, image_atlas,
+        effects,
         bgfxdotnim
 
 const ZEAL_GFX_STATE_DEFAULT = 0'u64 or 
@@ -33,7 +35,7 @@ proc addStep[T](p: var Pipeline, s: T): T =
   result = s
 
 proc newGeometryStep(gfx: var GfxCtx): GeometryStep =
-  result = GeometryStep(newDrawStep[GeometryStep]())
+  result = newDrawStep[GeometryStep]()
 
 proc pbr*(gfx: var GfxCtx) =
   # filters
@@ -51,3 +53,8 @@ proc pbr*(gfx: var GfxCtx) =
   var reflection = gfx.pipeline.addStep(newReflectionStep(gfx))
   var giTrace = gfx.pipeline.addStep(newGITraceStep(gfx))
   var giBake = gfx.pipeline.addStep(newGIBakeStep(gfx, light, giTrace))
+  var lightmap = gfx.pipeline.addStep(newLightmapStep(gfx, light, giBake))
+  var particles = gfx.pipeline.addStep(newParticlesStep(gfx))
+
+  # mrt
+  var resolve = gfx.pipeline.addStep(newResolveStep(gfx, copy))
