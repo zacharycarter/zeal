@@ -14,9 +14,6 @@ import  strutils, os, tables,
         engine_types, material, 
         bgfxdotnim
 
-type
-  CArray{.unchecked.} = array[0..0, cuchar]
-
 const 
   BGFX_INVALID_HANDLE = uint16.high
   SHADER_SUFFIXES = [
@@ -134,7 +131,7 @@ proc loadMem(filePath: string): ptr bgfx_memory_t =
   
   let size = getFileSize(filePath)
   result = bgfx_copy(cast[pointer](addr f), size.uint32 + 1)
-  var resultData = cast[ptr CArray](result.data)
+  var resultData = cast[ptr CArray[cuchar]](result.data)
   resultData[result.size - 1] = '\0'
 
   f.close()

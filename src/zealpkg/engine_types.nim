@@ -1,4 +1,5 @@
-import  tables, strutils, 
+import  tables, strutils,
+        math,
         bgfxdotnim
 
 proc currentSourceDir*(): string =
@@ -8,6 +9,8 @@ proc currentSourceDir*(): string =
 const ZEAL_DATA_DIR* = currentSourceDir() & "../data"
 
 type
+  CArray*[T] = array[0..0, T]
+
   PlatformData* = object
     nativeWindowHandle*: pointer
     nativeDisplayType*: pointer
@@ -17,6 +20,19 @@ type
     time, deltaTime: float
     renderPass: int
     numDrawCalls, numVertices, numTriangles: int
+
+  FrameBuffer* = ref object of RootObj
+    size*: Vec2
+    screenView*: Mat4
+    screenProj*: Mat4
+    fbo*: bgfx_frame_buffer_handle_t
+
+  RenderTarget* = ref object of FrameBuffer
+    mrt*: bool
+
+  Render* = object
+    target*: RenderTarget
+    isMRT*: bool
 
   PipelineStep* = ref object of RootObj
     index*: int
