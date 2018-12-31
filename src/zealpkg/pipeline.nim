@@ -62,3 +62,4 @@ proc pbr*(gfx: var GfxCtx) =
   # effects
   var dofBlur = gfx.pipeline.addStep(newDOFBlurStep(gfx, filter))
   var glow = gfx.pipeline.addStep(newGlowStep(gfx, filter, copy, blur))
+  var tonemap = gfx.pipeline.addStep(newTonemapStep(gfx, filter, copy))

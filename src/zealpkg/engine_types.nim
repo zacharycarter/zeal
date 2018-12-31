@@ -500,6 +500,17 @@ type
     bleedProgram*: Program
     mergeProgram*: Program
 
+  TonemapUniform* = object
+    bcs*: bgfx_uniform_handle_t
+    exposureParams*: bgfx_uniform_handle_t
+
+  TonemapStep* = ref object of PipelineStep
+    filterStep*: FilterStep
+    copyStep*: CopyStep
+
+    uniform*: TonemapUniform
+    program*: Program
+
   PipelineKind* = enum
     pkPbr, pkCount
 
