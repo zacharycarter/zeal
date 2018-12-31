@@ -50,3 +50,4 @@ proc pbr*(gfx: var GfxCtx) =
   var light = gfx.pipeline.addStep(newLightStep(gfx, shadow))
   var reflection = gfx.pipeline.addStep(newReflectionStep(gfx))
   var giTrace = gfx.pipeline.addStep(newGITraceStep(gfx))
+  var giBake = gfx.pipeline.addStep(newGIBakeStep(gfx, light, giTrace))

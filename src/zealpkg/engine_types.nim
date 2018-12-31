@@ -337,6 +337,58 @@ type
   GITraceStep* = ref object of DrawStep
     giProbe*: GIProbeUniform
 
+  VoxelGIUniform* = object
+    voxelsAlbedo*: bgfx_uniform_handle_t
+    voxelsNormals*: bgfx_uniform_handle_t
+    voxelsLight*: bgfx_uniform_handle_t
+
+    voxelsLightRGBA*: bgfx_uniform_handle_t
+
+    world*: bgfx_uniform_handle_t
+    normal*: bgfx_uniform_handle_t
+
+    params0*: bgfx_uniform_handle_t
+    params1*: bgfx_uniform_handle_t
+
+  GIProbeMode* = enum
+    gipmVoxelize, gipmLoadVoxels
+  
+  GIProbe* = ref object
+    node*: Node3
+    raster*: bgfx_texture_handle_t
+    voxelsColor*: bgfx_texture_handle_t
+    voxelsNormals*: bgfx_texture_handle_t
+    voxelsLight*: bgfx_texture_handle_t
+    fbo*: bgfx_frame_buffer_handle_t
+
+    voxelsLightRGBA*: bgfx_texture_handle_t
+    enabled*: bool
+    transform*: Mat4
+    subdiv*: int
+    extents*: Vec3
+    mode*: GIProbeMode
+    dirty*: bool
+
+    dynamicRange*: int
+    diffuse*: float
+    specular*: float
+    bounces*: int
+    propagation*: float
+
+    bias*: float
+    normalBias*: float
+
+  GIBakeStep* = ref object of DrawStep
+    lightStep*: LightStep
+    giTraceStep*: GITraceStep
+    voxelGI*: VoxelGIUniform
+    directLight*: Program
+    bounceLight*: Program
+    outputLight*: Program
+    voxelize*: Program
+    bakeProbe*: GIProbe
+    directLightCompute*: bool
+
   PipelineKind* = enum
     pkPbr, pkCount
 
