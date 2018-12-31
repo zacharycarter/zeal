@@ -474,6 +474,16 @@ type
   ResolveStep* = ref object of PipelineStep
     copyStep*: CopyStep
 
+  DOFBlurUniform* = object
+    dofNearParams*: bgfx_uniform_handle_t
+    dofFarParams*: bgfx_uniform_handle_t
+    dofParams*: bgfx_uniform_handle_t
+
+  DOFBlurStep* = ref object of PipelineStep
+    filterStep*: FilterStep
+    uniform*: DOFBlurUniform
+    program*: Program
+
   PipelineKind* = enum
     pkPbr, pkCount
 
