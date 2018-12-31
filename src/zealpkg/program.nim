@@ -2,13 +2,13 @@
 {.deadCodeElim: on.}
 when defined(windows):
   const
-    shadercdll* = "libbgfx-shared-lib(Debug|Release).dll"
+    shadercdll* = "libbrtshaderc(Debug|Release).dll"
 elif defined(macosx):
   const
     shadercdll* = "libbrtshaderc(Debug|Release).dylib"
 else:
   const
-    shadercdll* = "libbgfx-shared-lib(Debug|Release).so"
+    shadercdll* = "libbrtshaderc(Debug|Release).so"
 
 import  strutils, sequtils, os, tables,
         engine_types, material, 
