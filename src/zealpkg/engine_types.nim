@@ -12,6 +12,7 @@ const
   MAX_SHADOWS* = 32
   MAX_FORWARD_LIGHTS* = 16
   MAX_DIRECT_LIGHTS* = 1
+  MAX_REFLECTION_PROBES* = 16
 
 type
   CArray*[T] = array[0..0, T]
@@ -270,6 +271,59 @@ type
     fog*: FogUniform
     lightsData: LightArray[MAX_LIGHTS, MAX_DIRECT_LIGHTS]
     lightCount*: int
+
+  ReflectionUniform* = object
+    extentsIntensity: bgfx_uniform_handle_t
+    ambient: bgfx_uniform_handle_t
+    atlasRect: bgfx_uniform_handle_t
+    matrix: bgfx_uniform_handle_t
+
+    indices: bgfx_uniform_handle_t
+    count: bgfx_uniform_handle_t
+
+    atlas: bgfx_uniform_handle_t
+
+  ReflectionCubemap* = object
+    size*: int
+    fbo*: array[6, bgfx_frame_buffer_handle_t]
+    cubemap*: bgfx_texture_handle_t
+    depth*: bgfx_texture_handle_t
+
+  Scene* = ref object
+
+  Node3* = object
+    scene*: Scene
+    index*: int
+    transform*: Mat4
+    visible*: bool
+    lastUpdated*: int
+
+  ReflectionProbe* = object
+    node*: Node3
+    visible*: bool
+    intensity*: float
+    extents*: Vec3
+    shadows*: bool
+    atlas*: ReflectionAtlas
+    atlasIndex*: int
+    dirty*: bool
+
+  Slot* = object
+    index*: int
+    probe*: ReflectionProbe
+    rect*: Vec4
+    lastUpdate: int
+
+  ReflectionAtlas* = object
+    size*: int
+    subdiv*: int
+    colorTex*: bgfx_texture_handle_t
+
+  ReflectionStep* = ref object of DrawStep
+    uniform*: ReflectionUniform
+    cubemaps*: seq[ReflectionCubemap]
+    atlas*: ReflectionAtlas
+    reflectionMultiplier*: float
 
   PipelineKind* = enum
     pkPbr, pkCount
