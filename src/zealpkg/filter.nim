@@ -24,7 +24,7 @@ proc newRenderQuad(crop: Vec4, dest: Vec4, fboFlip: bool = false): RenderQuad =
 proc newFilterStep*(gfx: var GfxCtx): FilterStep =
   result = newPipelineStep[FilterStep]()
   result.quadProgram = gfx.newProgram("filter/quad")
-  var options {.global.} = @[
+  let options {.global.} = @[
     "UNPACK_DEPTH",
     "SOURCE_DEPTH",
     "SOURCE_0_CUBE",

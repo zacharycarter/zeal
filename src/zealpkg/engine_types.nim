@@ -11,6 +11,9 @@ const ZEAL_DATA_DIR* = currentSourceDir() & "../data"
 type
   CArray*[T] = array[0..0, T]
 
+  Color* = object
+    r, g, b, a: float
+
   PlatformData* = object
     nativeWindowHandle*: pointer
     nativeDisplayType*: pointer
@@ -116,6 +119,29 @@ type
     skyboxProgram*: Program
     skybox: SkyboxUniform
 
+  Radiance* = object
+    energy: float
+    ambient: float
+    color: Color
+    texture: Texture
+    roughnessArray: bgfx_texture_handle_t
+    preprocessed: bool
+
+  RadianceUniform* = object
+    radianceMap*: bgfx_uniform_handle_t
+
+  PrefilterUniform* = object
+    prefilterEnvmapParams*: bgfx_uniform_handle_t
+
+  RadianceStep* = ref object of DrawStep
+    radiance*: RadianceUniform
+    prefilter*: PrefilterUniform
+    filter*: FilterStep
+    copy*: CopyStep
+    prefilterProgram*: Program
+    prefilterQueue*: seq[Radiance]
+    prefiltered*: Table[uint16, uint16]
+
   PipelineKind* = enum
     pkPbr, pkCount
 
@@ -152,6 +178,8 @@ type
     name: string
     builtin: bool
     program: Program
+
+  Texture* = ref object
 
   Program* = ref object
     name*: string
@@ -208,3 +236,9 @@ proc newProgram*(gfx: var GfxCtx, name: string): Program =
     result.name = name
     result.versions = initTable[int, Version]()
     gfx.programs.add(name, result)
+
+proc newColor*(r= 1.0, g = 1.0, b = 1.0, a = 1.0): Color = 
+  result = Color(r: r, g: g, b: b, a: a)
+
+const
+  BLACK* = newColor(0.0, 0.0, 0.0, 0.0)

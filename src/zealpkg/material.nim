@@ -5,12 +5,14 @@ type
 
 proc newPbrPipelineStep*(): PbrPipelineStep =
   result = newPipelineStep[PbrPipelineStep]()
-  result.shaderStep.options = @[
-    "NORMAL_MAP",
-    "EMISSIVE",
-    "ANISOTROPY",
-    "AMBIENT_OCCLUSION",
-    "DEPTH_MAPPING",
-    "DEEP_PARALLAX",
-    "LIGHTMAP"
-  ]
+  let 
+    options {.global.} = @[
+      "NORMAL_MAP",
+      "EMISSIVE",
+      "ANISOTROPY",
+      "AMBIENT_OCCLUSION",
+      "DEPTH_MAPPING",
+      "DEEP_PARALLAX",
+      "LIGHTMAP"
+    ]
+  result.shaderStep.options = options

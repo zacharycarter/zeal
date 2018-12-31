@@ -1,6 +1,6 @@
 import  engine_types, math, program, 
         render_target, filter, blur, 
-        depth, sky,
+        depth, sky, radiance,
         bgfxdotnim
 
 const ZEAL_GFX_STATE_DEFAULT = 0'u64 or 
@@ -44,3 +44,4 @@ proc pbr*(gfx: var GfxCtx) =
   var depth = gfx.pipeline.addStep(newDepthStep(gfx))
   var geometry = gfx.pipeline.addStep(newGeometryStep(gfx))
   var sky = gfx.pipeline.addStep(newSkyStep(gfx, filter))
+  var radiance = gfx.pipeline.addStep(newRadianceStep(gfx, filter, copy))
