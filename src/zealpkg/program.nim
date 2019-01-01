@@ -200,6 +200,10 @@ proc registerStep*(p: var Program, step: PipelineStep) =
   p.registerModes(step.index, step.shaderStep.modes)
   p.defines.insert(step.shaderStep.defines)
 
+proc registerSteps*(p: var Program, steps: openArray[PipelineStep]) =
+  for step in steps:
+    p.registerStep(step)
+
 proc newProgram*(name: string, compute: bool = false): Program =
   result = new(Program)
   result.name = name

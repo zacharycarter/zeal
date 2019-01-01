@@ -50,10 +50,20 @@ type
     rpkBackground, rpkParticles, rpkAlpha, rpkUnshaded, 
     rpkEffects, rpkPostProcess, rpkFlip, rpkCount
 
-  RenderPass* = object
-    name: string
-    passKind: RenderPassKind
-    steps: seq[PipelineStep]
+  RenderPass* = ref object of RootObj
+    name*: string
+    renderPassKind*: RenderPassKind
+    steps*: seq[PipelineStep]
+
+  GIProbesPass* = ref object of RenderPass
+    lightStep*: LightStep
+    giBakeStep*: GIBakeStep
+  
+  ShadowmapPass* = ref object of RenderPass
+    shadowStep*: ShadowStep
+
+  Shading* = enum
+    sWireframe, sUnshaded, sShaded, sVolume, sVoxels, sLightmap, sClear, sCount
 
   DrawElement* = object
 
@@ -518,6 +528,12 @@ type
     steps*: seq[PipelineStep]
     passSteps*: Table[RenderPassKind, seq[PipelineStep]]
 
+  Renderer* = ref object of RootObj
+    steps*: seq[PipelineStep]
+    renderPasses*: seq[RenderPass]
+    shading*: Shading
+    pipeline*: Pipeline
+
   ShaderKind* = enum
     skCompute, skFragment, skGeometry, skVertex, skCount
   
@@ -591,6 +607,15 @@ proc newDrawStep*[T](): T =
   result = newPipelineStep[T]()
   result.drawStep = true
 
+proc beginFrame*[T](s: T, frame: RenderFrame) =
+  discard frame
+
+proc beginPass*(s: PipelineStep, r: var Render) =
+  discard r
+
+proc beginRender*(s: PipelineStep, r: var Render) =
+  discard r
+
 proc submit*[T](ds: T, r: var Render, rp: var RenderPass) =
   discard
 
@@ -610,6 +635,15 @@ proc newProgram*(gfx: var GfxCtx, name: string): Program =
     result.name = name
     result.versions = initTable[int, Version]()
     gfx.programs.add(name, result)
+
+proc newRenderer*[T](gfx: var GfxCtx, p: var Pipeline, s: Shading): T =
+  result = new(T)
+  result.pipeline = p
+  result.shading = s
+
+proc addPass*[T](r: var T, rp: RenderPass): RenderPass =
+  result = rp
+  r.renderPasses.add(result)
 
 proc newColor*(r= 1.0, g = 1.0, b = 1.0, a = 1.0): Color = 
   result = Color(r: r, g: g, b: b, a: a)

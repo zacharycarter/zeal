@@ -1,4 +1,4 @@
-import  engine_types
+import  engine_types, renderer
 
 proc newGITraceStep*(gfx: var GfxCtx): GITraceStep =
   result = newDrawStep[GITraceStep]()
@@ -10,3 +10,6 @@ proc newGIBakeStep*(gfx: var GfxCtx, lightStep: LightStep, giTraceStep: GITraceS
   result = newDrawStep[GIBakeStep]()
   result.lightStep = lightStep
   result.giTraceStep = giTraceStep
+
+proc newGIProbesPass*(gfx: var GfxCtx, lightStep: LightStep, giBakeStep: GIBakeStep): GIProbesPass =
+  result = newRenderPass[GIProbesPass](gfx, "voxelGI", rpkVoxelGI)

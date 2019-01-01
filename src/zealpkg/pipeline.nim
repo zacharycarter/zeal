@@ -1,10 +1,11 @@
 import  engine_types, math, program, 
-        render_target, filter, blur, 
-        depth, sky, radiance, shadow,
-        light, reflection, voxel_gi,
-        lightmap, particles, image_atlas,
-        effects, dof_blur, glow, tonemap,
-        tables,
+        render_target, renderer,
+        filter, blur, depth, sky, 
+        radiance, shadow, light, 
+        reflection, voxel_gi, lightmap, 
+        particles, image_atlas, effects, 
+        dof_blur, glow, tonemap,
+        tables, typetraits,
         bgfxdotnim
 
 const ZEAL_GFX_STATE_DEFAULT = 0'u64 or 
@@ -22,14 +23,13 @@ const ZEAL_GFX_STATE_DEFAULT_ALPHA = 0'u64 or
               BGFX_STATE_MSAA or
               BGFX_STATE_BLEND_ALPHA
 
-proc beginFrame*[T](s: T, frame: RenderFrame) =
-  discard frame
+type
+  ForwardRenderer = ref object of Renderer
 
-proc beginPass*(s: PipelineStep, r: var Render) =
-  discard r
-
-proc beginRender*(s: PipelineStep, r: var Render) =
-  discard r
+proc step(p: Pipeline, stepType: typedesc): stepType =
+  for step in p.steps:
+    if step is stepType:
+      return stepType(step)
 
 proc addStep[T](p: var Pipeline, s: T): T =
   p.steps.add(s)
@@ -38,45 +38,54 @@ proc addStep[T](p: var Pipeline, s: T): T =
 proc newGeometryStep(gfx: var GfxCtx): GeometryStep =
   result = newDrawStep[GeometryStep]()
 
+proc newForwardRenderer(gfx: var GfxCtx): ForwardRenderer =
+  result = newRenderer[ForwardRenderer](gfx, gfx.pipeline, sShaded)
+  
+  discard result.addPass(newGIProbesPass(gfx, gfx.pipeline.step(LightStep), gfx.pipeline.step(GIBakeStep)))
+  discard result.addPass(newShadowmapPass(gfx, gfx.pipeline.step(ShadowStep)))
+
+
 proc pbr*(gfx: var GfxCtx) =
   # filters
-  var filter = gfx.pipeline.addStep(newFilterStep(gfx))
-  var copy = gfx.pipeline.addStep(newCopyStep(gfx, filter))
-  var blur = gfx.pipeline.addStep(newBlurStep(gfx, filter))
+  var 
+    filter = gfx.pipeline.addStep(newFilterStep(gfx))
+    copy = gfx.pipeline.addStep(newCopyStep(gfx, filter))
+    blur = gfx.pipeline.addStep(newBlurStep(gfx, filter))
 
   # pipeline
-  var depth = gfx.pipeline.addStep(newDepthStep(gfx))
-  var geometry = gfx.pipeline.addStep(newGeometryStep(gfx))
-  var sky = gfx.pipeline.addStep(newSkyStep(gfx, filter))
-  var radiance = gfx.pipeline.addStep(newRadianceStep(gfx, filter, copy))
-  var shadow = gfx.pipeline.addStep(newShadowStep(gfx, depth))
-  var light = gfx.pipeline.addStep(newLightStep(gfx, shadow))
-  var reflection = gfx.pipeline.addStep(newReflectionStep(gfx))
-  var giTrace = gfx.pipeline.addStep(newGITraceStep(gfx))
-  var giBake = gfx.pipeline.addStep(newGIBakeStep(gfx, light, giTrace))
-  var lightmap = gfx.pipeline.addStep(newLightmapStep(gfx, light, giBake))
-  var particles = gfx.pipeline.addStep(newParticlesStep(gfx))
+    depth = gfx.pipeline.addStep(newDepthStep(gfx))
+    geometry = gfx.pipeline.addStep(newGeometryStep(gfx))
+    sky = gfx.pipeline.addStep(newSkyStep(gfx, filter))
+    radiance = gfx.pipeline.addStep(newRadianceStep(gfx, filter, copy))
+    shadow = gfx.pipeline.addStep(newShadowStep(gfx, depth))
+    light = gfx.pipeline.addStep(newLightStep(gfx, shadow))
+    reflection = gfx.pipeline.addStep(newReflectionStep(gfx))
+    giTrace = gfx.pipeline.addStep(newGITraceStep(gfx))
+    giBake = gfx.pipeline.addStep(newGIBakeStep(gfx, light, giTrace))
+    lightmap = gfx.pipeline.addStep(newLightmapStep(gfx, light, giBake))
+    particles = gfx.pipeline.addStep(newParticlesStep(gfx))
 
   # mrt
-  var resolve = gfx.pipeline.addStep(newResolveStep(gfx, copy))
+    resolve = gfx.pipeline.addStep(newResolveStep(gfx, copy))
 
   # effects
-  var dofBlur = gfx.pipeline.addStep(newDOFBlurStep(gfx, filter))
-  var glow = gfx.pipeline.addStep(newGlowStep(gfx, filter, copy, blur))
-  var tonemap = gfx.pipeline.addStep(newTonemapStep(gfx, filter, copy))
+    dofBlur = gfx.pipeline.addStep(newDOFBlurStep(gfx, filter))
+    glow = gfx.pipeline.addStep(newGlowStep(gfx, filter, copy, blur))
+    tonemap = gfx.pipeline.addStep(newTonemapStep(gfx, filter, copy))
 
-  let depthSteps = @[PipelineStep(depth)]
-  let geometrySteps: seq[PipelineStep] = @[]
-  let shadingSteps = @[
-    PipelineStep(radiance), 
-    PipelineStep(light), 
-    PipelineStep(shadow), 
-    PipelineStep(giTrace), 
-    PipelineStep(reflection), 
-    PipelineStep(lightmap),
-  ]
-  let giSteps = @[PipelineStep(light), PipelineStep(shadow), PipelineStep(giBake)]
-  let lightmapSteps = @[PipelineStep(light), PipelineStep(shadow), PipelineStep(giTrace), PipelineStep(lightmap)]
+  let 
+    depthSteps = @[PipelineStep(depth)]
+    geometrySteps: seq[PipelineStep] = @[]
+    shadingSteps = @[
+      PipelineStep(radiance), 
+      PipelineStep(light), 
+      PipelineStep(shadow), 
+      PipelineStep(giTrace), 
+      PipelineStep(reflection), 
+      PipelineStep(lightmap),
+    ]
+    giSteps = @[PipelineStep(light), PipelineStep(shadow), PipelineStep(giBake)]
+    lightmapSteps = @[PipelineStep(light), PipelineStep(shadow), PipelineStep(giTrace), PipelineStep(lightmap)]
 
   gfx.pipeline.passSteps = initTable[RenderPassKind, seq[PipelineStep]]()
   gfx.pipeline.passSteps[rpkUnshaded] = @[]
@@ -100,3 +109,39 @@ proc pbr*(gfx: var GfxCtx) =
   gfx.pipeline.passSteps[rpkGeometry] = geometrySteps
   gfx.pipeline.passSteps[rpkLights] = shadingSteps
 
+  var unshadedProgram = gfx.newProgram("unshaded")
+  unshadedProgram.registerSteps(depthSteps)
+  
+  var depthProgram = gfx.newProgram("depth")
+  depthProgram.registerSteps(depthSteps)
+
+  var pbrProgram = gfx.newProgram("pbr/pbr")
+  pbrProgram.registerSteps(shadingSteps)
+  
+  var geometryProgram = gfx.newProgram("pbr/geometry")
+  geometryProgram.registerSteps(geometrySteps)
+  
+  var lightsProgram = gfx.newProgram("pbr/lights")
+  lightsProgram.registerSteps(shadingSteps)
+  
+  discard gfx.newProgram("fresnel")
+  
+  var giVoxelizeProgram = gfx.newProgram("gi/voxelize")
+  giVoxelizeProgram.registerSteps(giSteps)
+  
+  var giVoxelLightProgram = gfx.newProgram("gi/direct_light")
+  giVoxelLightProgram.compute = true
+  giVoxelLightProgram.registerSteps(giSteps)
+
+  var giVoxelBounceProgram = gfx.newProgram("gi/bounce_light")
+  giVoxelBounceProgram.compute = true
+  giVoxelBounceProgram.registerSteps(giSteps)
+
+  var giVoxelOutputProgram = gfx.newProgram("gi/output_light")
+  giVoxelOutputProgram.compute = true
+  giVoxelOutputProgram.registerSteps(giSteps)
+    
+  var lightmapProgram = gfx.newProgram("pbr/lightmap")
+  lightmapProgram.registerSteps(lightmapSteps)
+
+  let forwardRenderer {.global.} = newForwardRenderer(gfx)

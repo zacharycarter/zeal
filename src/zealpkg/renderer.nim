@@ -1,9 +1,10 @@
-import  engine_types, pipeline
+import  engine_types, tables
 
-type
-  Renderer* = object
-    steps: seq[PipelineStep]
-    renderPasses: seq[RenderPass]
+proc newRenderPass*[T](gfx: var GfxCtx, name: string, rpk: RenderPassKind): T =
+  result = new(T)
+  result.name = name
+  result.renderPassKind = rpk
+  result.steps = gfx.pipeline.passSteps[rpk]
 
 proc submitRenderPass(rp: RenderPass, render: var Render) =
   discard
