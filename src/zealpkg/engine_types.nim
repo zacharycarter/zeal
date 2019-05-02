@@ -4,10 +4,13 @@ import  tables, strutils,
 
 proc currentSourceDir*(): string =
   result = currentSourcePath()
-  result = result[0 ..< result.rfind("/")]
+  when defined(windows):
+    result = result[0 ..< result.rfind("\\")]
+  else:
+    result = result[0 ..< result.rfind("/")]
 
-const 
-  ZEAL_DATA_DIR* = currentSourceDir() & "../data"
+const
+  ZEAL_DATA_DIR* = if defined(windows): currentSourceDir() & "..\\data" else: currentSourceDir() & "../data"
   MAX_LIGHTS* = 64
   MAX_SHADOWS* = 32
   MAX_FORWARD_LIGHTS* = 16

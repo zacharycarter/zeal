@@ -79,7 +79,10 @@ proc compileShader(gfx: GfxCtx, name: string, suffix: string, shaderKind: Shader
   type Target = enum
     GLSL, ESSL, HLSL, Metal
   
-  when defined(macosx):
+  var target: Target
+  if defined(windows):
+    target = if isOpenGL: GLSL else: Metal
+  elif defined(macosx):
     let target = if isOpenGL: GLSL else: Metal
     
   if target == ESSL or target == Metal:
