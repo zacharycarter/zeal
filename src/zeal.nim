@@ -1,6 +1,9 @@
-import zealpkg / [engine, engine_types]
+import zealpkg / [app, gfx, pipeline]
 
-export engine, engine_types
+proc update(app: App) =
+  discard
 
 when isMainModule:
-  discard
+  var zealApp = newApp()
+  zealApp.gfx.initPipeline(pipelineMinimal)
+  zealApp.run(update)
