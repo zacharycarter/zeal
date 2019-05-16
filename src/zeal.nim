@@ -1,9 +1,4 @@
-import zealpkg / [app, gfx, pipeline]
+import zealpkg / [app]
 
-proc update(app: App) =
-  discard
-
-when isMainModule:
-  var zealApp = newApp()
-  zealApp.gfx.initPipeline(pipelineMinimal)
-  zealApp.run(update)
+export
+  app
