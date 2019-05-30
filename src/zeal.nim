@@ -1,4 +1,4 @@
 import zealpkg / [app]
 
 export
-  app
+  zeal.app

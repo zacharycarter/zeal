@@ -1,8 +1,11 @@
-import sdl2, zeal
+import zeal, sdl2
 
 proc appUpdate(window: sdl2.WindowPtr) =
   discard
 
-zeal.init(960, 540)
+if not zeal.init(960, 540):
+  echo "Failed to initialize zeal"
+  quit(QUIT_FAILURE)
+
 zeal.run(appUpdate)
 zeal.shutdown()

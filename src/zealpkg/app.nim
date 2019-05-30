@@ -1,38 +1,32 @@
-import sdl2
+import sdl2, gfx
 
 type
   AppUpdateProc* = (proc(window: sdl2.WindowPtr))
 
-var 
-  window: sdl2.WindowPtr
-  appUpdateProc: AppUpdateProc
+var window: sdl2.WindowPtr
 
-proc init*(width, height: int) =
-  sdl2.init(INIT_TIMER or INIT_VIDEO)
+proc init*(width, height: int):bool =
+  result = false
 
-  window = createWindow("zeal", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width.cint, height.cint, SDL_WINDOW_SHOWN)
+  if not sdl2.init(sdl2.InitVideo):
+    echo "ERROR: SDL initialization failed: ", sdl2.getError()
+    return result
 
-  if window.isNil:
-    quit(QUIT_FAILURE)
+  window = sdl2.createWindow("".cstring,  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width.cint, height.cint, SDL_WINDOW_SHOWN)
 
-proc beginFrame(): bool =
-  true
+  if window == nil:
+    echo "ERROR: Failed creating SDL window: %s", sdl2.getError()
+    return result
 
-proc endFrame() =
+  echo "INFO: SDL initialized"
+
+  result = gfx.init(window, width, height)
+
+proc run*(appUpdateProc: AppUpdateProc) =
   discard
 
-proc update(): bool =
-  result = beginFrame()
-  if appUpdateProc != nil:
-    appUpdateProc(window)
-  endFrame()
-  
-proc run*(updateApp: AppUpdateProc) =
-  appUpdateProc = updateApp
-
-  while update():
-    discard
-
 proc shutdown*() =
+  gfx.shutdown()
   window.destroyWindow()
+  echo "INFO: SDL shutdown complete"
   sdl2.quit()

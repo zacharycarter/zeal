@@ -13,4 +13,4 @@ bin           = @["zeal"]
 
 requires "nim >= 0.19.0"
 requires "bgfxdotnim >= 0.1.0"
-requires "sdl2 >= 2.0"
+requires "sdl2 >= 2.0.0"
