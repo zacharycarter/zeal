@@ -23,7 +23,11 @@ proc init*(width, height: int):bool =
   result = gfx.init(window, width, height)
 
 proc run*(appUpdateProc: AppUpdateProc) =
-  discard
+  var event {.global.}: sdl2.Event = sdl2.defaultEvent
+  while true:
+    if(sdl2.pollEvent(event)):
+      if event.kind == sdl2.QuitEvent:
+        break
 
 proc shutdown*() =
   gfx.shutdown()

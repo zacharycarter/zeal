@@ -5,23 +5,22 @@ const
   SDL_MINOR_VERSION* = 0
   SDL_PATCHLEVEL* = 5
 
-template sdlVersion*(x: untyped) = ##  \
-  ##  Template to determine SDL version program was compiled against.
-  ##
-  ##  This template fills in a Version object with the version of the
-  ##  library you compiled against. This is determined by what header the
-  ##  compiler uses. Note that if you dynamically linked the library, you might
-  ##  have a slightly newer or older version at runtime. That version can be
-  ##  determined with getVersion(), which, unlike version(),
-  ##  is not a template.
-  ##
-  ##  ``x`` Version object to initialize.
-  ##
-  ##  See also:
-  ##
-  ##  ``Version``
-  ##
-  ##  ``getVersion``
+{.this:self.}
+
+type
+  PipelineStep = ref object {.inheritable.}
+  
+  MaterialStep = ref object of PipelineStep
+
+  FilterStep = ref object of PipelineStep
+    options: seq[string]
+  
+  Pipeline = seq[PipelineStep]
+
+var
+  pipeline: Pipeline = @[]
+
+template sdlVersion*(x: untyped) =
   (x).major = SDL_MAJOR_VERSION
   (x).minor = SDL_MINOR_VERSION
   (x).patch = SDL_PATCHLEVEL
@@ -51,15 +50,21 @@ proc linkSDL2BGFX(window: sdl2.WindowPtr) =
     else:
       discard
 
+  pd.backBuffer = nil
+  pd.backBufferDS = nil
+  pd.context = nil
+  bgfx_set_platform_data(pd)
+  freeShared(pd)
+
 proc init*(window: sdl2.WindowPtr, width, height: int): bool =
   result = false
 
   linkSDL2BGFX(window)
 
-  var init: bgfx_init_t
-  bgfx_init_ctor(addr init)
+  var bgfxInit: bgfx_init_t
+  bgfx_init_ctor(addr bgfxInit)
 
-  if not bgfx_init(addr init):
+  if not bgfx_init(addr bgfxInit):
     echo "ERROR: BGFX initialization failed"
     return result
 
@@ -72,6 +77,13 @@ proc init*(window: sdl2.WindowPtr, width, height: int): bool =
   echo "INFO: BGFX initialized"
 
   result = true
+
+proc init(self: MaterialStep) =
+  discard
+
+proc initMinimalPipeline*() =
+  pipeline = @[]
+  pipeline.add(new MaterialStep)
 
 proc shutdown*() =
   bgfx_shutdown()
