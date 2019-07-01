@@ -1,4 +1,4 @@
-import sdl2, bgfxdotnim, bgfxdotnim / [platform], deques, strutils, tables
+import sdl2, bgfxdotnim, bgfxdotnim / [platform], deques, sequtils, strutils, tables
 
 const
   SDL_MAJOR_VERSION* = 2
@@ -8,11 +8,15 @@ const
 type
   AssetStore[T] = Table[string, T]
 
+  SpriteAtlas = object
+
   Program = ref object
     name: string
     options: seq[string]
     modes: seq[string]
     defines: Deque[ShaderDefine]
+    steps: Table[MaterialStepKind, bool]
+    registeredSteps: seq[PipelineStep]
   
   ProgramStep = object
     enabled: bool
@@ -23,6 +27,29 @@ type
     name: string
     value: string
 
+  MaterialStepKind = enum
+    mskBase,
+    mskAlpha,
+    mskSolid,
+    mskPoint,
+    mskLine,
+    mskLit,
+    mskPbr,
+    mskPhong,
+    mskFresnel,
+    mskUser,
+    mskCount
+
+  ShadingKind = enum
+    skWireframe,
+    skSolid,
+    skShaded,
+    skVolume,
+    skVoxels,
+    skLightmap,
+    skClear,
+    skCount
+
   Pipeline = seq[PipelineStep]
   
   PipelineStep = ref object of RootObj
@@ -30,6 +57,7 @@ type
     options: seq[string]
     modes: seq[string]
     defines: seq[ShaderDefine]
+    drawStep: bool
 
   MaterialStep = ref object of PipelineStep
     u_state: bgfx_uniform_handle_t
@@ -52,10 +80,25 @@ type
     filterStep: FilterStep
     program: Program
 
+  DepthStep = ref object of PipelineStep
+  
+  SkyStep = ref object of PipelineStep
+    filterStep: FilterStep
+    skyboxProgram: Program
+
+  ParticlesStep = ref object of PipelineStep
+    sprites: SpriteAtlas
+
+  RenderContext = object
+
+  RenderProc = (proc(renderCtx: RenderContext))
+
+
 var
   programs: AssetStore[Program] = initTable[string, Program]()
   stepIndex = 1
   shaderSteps: array[32, ProgramStep]
+  renderers: Table[ShadingKind, RenderProc] = initTable[ShadingKind, RenderProc]()
 
 template sdlVersion*(x: untyped) =
   (x).major = SDL_MAJOR_VERSION
@@ -115,14 +158,19 @@ proc init*(window: sdl2.WindowPtr, width, height: int): bool =
 
   result = true
 
+proc newSpriteAtlas(): SpriteAtlas =
+  result
+
 proc new(program: typedesc[Program], name: string): Program =
   result = new(Program)
   result.name = name
   result.options = @[]
   result.modes = @[]
   result.defines = initDeque[ShaderDefine]()
+  result.steps = initTable[MaterialStepKind, bool]()
+  result.registeredSteps = @[]
 
-proc createAsset[T](assetStore: var AssetStore[T], name: string): T =
+proc create[T](assetStore: var AssetStore[T], name: string): T =
   if assetStore.contains(name):
     echo "WARN: asset with name $1 already exists: previous asset deleted" % name
     assetStore.del(name)
@@ -155,6 +203,10 @@ proc registerStep(program: Program, pipelineStep: PipelineStep) =
     for define in pipelineStep.defines:
       program.defines.addFirst(define)
 
+proc registerSteps[T](program: Program, pipelineSteps: seq[T]) =
+  for pipelineStep in pipelineSteps:
+    program.registerStep(pipelineStep)
+    program.registeredSteps.add(pipelineStep)
 
 proc initPipelineStep(pipelineStep: PipelineStep) =
   pipelineStep.index = stepIndex 
@@ -162,6 +214,33 @@ proc initPipelineStep(pipelineStep: PipelineStep) =
   pipelineStep.options = @[]
   pipelineStep.modes = @[]
   pipelineStep.defines = @[]
+
+proc newPipelineStep(options: seq[string] = @[], modes: seq[string] = @[]): PipelineStep =
+  result = new(PipelineStep)
+  initPipelineStep(result)
+  result.options.insert(options)
+  result.modes.insert(modes)
+
+proc setStep(program: Program, stepKind: MaterialStepKind, enabled: bool = false) =
+  var shaderSteps {.global.} = {
+    mskBase: newPipelineStep(@["VERTEX_COLOR", "DOUBLE_SIDED", "FLAT_SHADED"]),
+    mskAlpha: newPipelineStep(@["ALPHA_MAP", "ALPHA_TEST"]),
+    mskSolid: newPipelineStep(@["COLOR_MAP"]),
+    mskLine: newPipelineStep(@["DASH"]),
+    mskPoint: newPipelineStep(),
+    mskFresnel: newPipelineStep(),
+    mskLit: newPipelineStep(@["NORMAL_MAP", "EMISSIVE", "AMBIENT_OCCLUSION", "LIGHTMAP", "DISPLACEMENT"]),
+    mskPbr: newPipelineStep(@["ALBEDO_MAP", "ROUGHNESS_MAP", "METALLIC_MAP", "DEPTH_MAPPING", "DEEP_PARALLAX"], @["DIFFUSE_MODE", "SPECULAR_MODE"]),
+    mskPhong: newPipelineStep(@["DIFFUSE_MAP", "SPECULAR_MAP", "SHININESS_MAP", "REFRACTION", "TOON"], @["ENV_BLEND"]),
+    mskUser: newPipelineStep(),
+  }.toTable()
+
+  program.steps[stepKind] = true
+  program.registerStep(shaderSteps[stepKind])
+
+proc setSteps(program: Program, stepKinds: seq[MaterialStepKind]) =
+  for stepKind in stepKinds:
+    program.setStep(stepKind)
 
 proc newMaterialStep(): MaterialStep =
   result = new(MaterialStep)
@@ -175,8 +254,25 @@ proc newCopyStep(filterStep: FilterStep): CopyStep =
   result = new(CopyStep)
   initPipelineStep(result)
   result.filterStep = filterStep
-  result.program = programs.createAsset("filter/copy")
+  result.program = programs.create("filter/copy")
   result.program.registerStep(filterStep)
+
+proc newDepthStep(): DepthStep =
+  result = new(DepthStep)
+  initPipelineStep(result)
+  result.drawStep = true
+
+proc newSkyStep(filterStep: FilterStep): SkyStep =
+  result = new(SkyStep)
+  initPipelineStep(result)
+  result.filterStep = filterStep
+  result.skyboxProgram = programs.create("skybox")
+  result.skyboxProgram.registerStep(filterStep)
+
+proc newParticlesStep(): ParticlesStep =
+  result = new(ParticlesStep)
+  initPipelineStep(result)
+  result.sprites = newSpriteAtlas()
 
 proc init(materialStep: MaterialStep) =
   materialStep.u_state = bgfx_create_uniform("u_state", BGFX_UNIFORM_TYPE_VEC4, 1)
@@ -205,13 +301,43 @@ proc init*(pipeline: Pipeline) =
   for pipelineBlock in pipeline:
     pipelineBlock.init()
 
+proc renderMinimal(renderCtx: RenderContext) =
+  discard
+
 proc minimalPipeline*(): Pipeline =
   result = newPipeline()
   result.add(newMaterialStep())
+  
   let filterStep = newFilterStep()
   result.add(filterStep)
   result.add(newCopyStep(filterStep))
 
+  let depthStep = newDepthStep()
+  result.add(depthStep)
+  result.add(newSkyStep(filterStep))
+  result.add(newParticlesStep())
+
+  let depthSteps = @[depthStep]
+
+  let solid = programs.create("solid")
+  solid.setSteps(@[mskAlpha, mskSolid])
+
+  let depth = programs.create("depth")
+  depth.registerSteps(depthSteps)
+  depth.setSteps(@[mskAlpha])
+
+  let distance = programs.create("distance")
+  distance.registerSteps(depthSteps)
+  distance.setSteps(@[mskAlpha])
+
+  let pbr = programs.create("pbr/pbr")
+  pbr.setSteps(@[mskAlpha, mskLit, mskPbr])
+
+  let fresnel = programs.create("fresnel")
+  fresnel.setSteps(@[mskAlpha, mskFresnel])
+
+  renderers[skShaded] = renderMinimal
+  renderers[skVolume] = renderMinimal
 
 proc shutdown*() =
   bgfx_shutdown()
