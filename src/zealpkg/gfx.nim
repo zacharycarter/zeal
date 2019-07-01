@@ -1,4 +1,4 @@
-import sdl2, bgfxdotnim, bgfxdotnim / [platform], strutils, tables
+import sdl2, bgfxdotnim, bgfxdotnim / [platform], deques, strutils, tables
 
 const
   SDL_MAJOR_VERSION* = 2
@@ -10,11 +10,26 @@ type
 
   Program = ref object
     name: string
+    options: seq[string]
+    modes: seq[string]
+    defines: Deque[ShaderDefine]
+  
+  ProgramStep = object
+    enabled: bool
+    optionShift: int
+    modeShift: int
+
+  ShaderDefine = object
+    name: string
+    value: string
 
   Pipeline = seq[PipelineStep]
   
   PipelineStep = ref object of RootObj
     index: int
+    options: seq[string]
+    modes: seq[string]
+    defines: seq[ShaderDefine]
 
   MaterialStep = ref object of PipelineStep
     u_state: bgfx_uniform_handle_t
@@ -38,9 +53,9 @@ type
     program: Program
 
 var
-  pipeline: Pipeline = @[]
   programs: AssetStore[Program] = initTable[string, Program]()
   stepIndex = 1
+  shaderSteps: array[32, ProgramStep]
 
 template sdlVersion*(x: untyped) =
   (x).major = SDL_MAJOR_VERSION
@@ -103,6 +118,9 @@ proc init*(window: sdl2.WindowPtr, width, height: int): bool =
 proc new(program: typedesc[Program], name: string): Program =
   result = new(Program)
   result.name = name
+  result.options = @[]
+  result.modes = @[]
+  result.defines = initDeque[ShaderDefine]()
 
 proc createAsset[T](assetStore: var AssetStore[T], name: string): T =
   if assetStore.contains(name):
@@ -112,12 +130,38 @@ proc createAsset[T](assetStore: var AssetStore[T], name: string): T =
   assetStore.add(name, new(T, name))
   result = assetStore[name]
 
+proc registerOptions(program: Program, stepIndex: int, options: seq[string]) =
+  assert(stepIndex < 32)
+  shaderSteps[stepIndex].enabled = true
+  shaderSteps[stepIndex].optionShift = program.options.len()
+
+  for i in 0 ..< options.len():
+    program.options.add(options[i])
+
+proc registerModes(program: Program, stepIndex: int, modes: seq[string]) =
+  assert(stepIndex < 32)
+  shaderSteps[stepIndex].enabled = true
+  shaderSteps[stepIndex].modeShift = program.modes.len()
+
+  for i in 0 ..< modes.len():
+    program.modes.add(modes[i])
+
 proc registerStep(program: Program, pipelineStep: PipelineStep) =
   assert(pipelineStep.index < 32)
+  shaderSteps[pipelineStep.index].enabled = true
+  program.registerOptions(pipelineStep.index, pipelineStep.options)
+  program.registerModes(pipelineStep.index, pipelineStep.modes)
+  if pipelineStep.defines.len() > 0:
+    for define in pipelineStep.defines:
+      program.defines.addFirst(define)
+
 
 proc initPipelineStep(pipelineStep: PipelineStep) =
   pipelineStep.index = stepIndex 
   inc(stepIndex)
+  pipelineStep.options = @[]
+  pipelineStep.modes = @[]
+  pipelineStep.defines = @[]
 
 proc newMaterialStep(): MaterialStep =
   result = new(MaterialStep)
@@ -164,7 +208,9 @@ proc init*(pipeline: Pipeline) =
 proc minimalPipeline*(): Pipeline =
   result = newPipeline()
   result.add(newMaterialStep())
-  result.add(newFilterStep())
+  let filterStep = newFilterStep()
+  result.add(filterStep)
+  result.add(newCopyStep(filterStep))
 
 
 proc shutdown*() =
