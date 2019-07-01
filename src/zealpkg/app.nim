@@ -22,6 +22,8 @@ proc init*(width, height: int):bool =
 
   result = gfx.init(window, width, height)
 
+  gfx.minimalPipeline().init()
+
 proc run*(appUpdateProc: AppUpdateProc) =
   var event {.global.}: sdl2.Event = sdl2.defaultEvent
   while true:
