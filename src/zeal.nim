@@ -1,4 +1,4 @@
-import bgfxdotnim, bgfxdotnim/platform, zealpkg / [event, game], sdl2 as sdl, strutils
+import bgfxdotnim, bgfxdotnim/platform, zealpkg / [event, game, render], sdl2 as sdl, strutils
 
 const
   SDL_MAJOR_VERSION* = 2
@@ -91,6 +91,7 @@ proc engineInit(): bool =
 
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 
+  render.init()
   event.init()
 
   event.globalRegister(EventKind(sdl.QuitEvent), Handler(asProc: onUserQuit), nil, int32(ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
