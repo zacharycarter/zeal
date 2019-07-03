@@ -74,7 +74,7 @@ proc processSDLEvents() =
 
   while sdl.pollEvent(event):
     case event.kind
-    of sdl.Key_Down:
+    of sdl.KeyDown:
       case event.key.keysym.scancode
       of SDL_SCANCODE_ESCAPE:
         quit = true
