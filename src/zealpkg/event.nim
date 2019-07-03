@@ -1,7 +1,13 @@
-import sdl2 as sdl
+import deques, script, sdl2 as sdl, tables
+
+const globalId = not uint32(0)
 
 type
-  EventType* {.size: sizeof(uint32).} = enum
+  EventSource* = enum
+    esEngine,
+    esScript
+
+  EventKind* {.size: sizeof(uint32).} = enum
     #
     # +-----------------+-----------------------------------------------+
     # | Range           | Use                                           |
@@ -16,12 +22,85 @@ type
     # The very first event serviced during a tick is a single EVENT_UPDATE_START one.
     # The very last event serviced during a tick is a single EVENT_UPDATE_END one. 
     #
-    etUpdateStart = uint32(sdl.LastEvent) + 1,
-    etUpdateEnd,
-    etUpdateUI,
-    etRender3D,
-    etRenderUI,
-    etEngineLast = 0x1ffff,
+    ekUpdateStart = uint32(sdl.LastEvent) + 1,
+    ekUpdateEnd,
+    ekUpdateUI,
+    ekRender3D,
+    ekRenderUI,
+    ekEngineLast = 0x1ffff,
 
+  HandlerKind* = enum
+    hkEngine
+    hkScript
+  
+  HandlerProc* = proc (a1: pointer; a2: pointer)
 
-    
+  Handler* {.union.} = object
+    asProc*: HandlerProc
+    asScriptCallable*: ScriptOpaque
+  
+  HandlerDesc* = object
+    kind: HandlerKind
+    handler: Handler
+    userArg: pointer
+    simMask: int32
+  
+  Event = object
+    kind: EventKind
+    arg: pointer
+    source: EventSource
+    receiverId: uint32
+
+var 
+  eventHandlers: Table[uint64, seq[HandlerDesc]]
+  eventQueue: Deque[Event]
+
+proc key(entId: uint32, eventKind: EventKind): uint64 =
+  result = (uint64(entId) shl 32) or uint64(eventKind)
+
+proc registerHandler(key: uint64, handlerDesc: HandlerDesc) =
+  if eventHandlers.hasKey(key):
+    eventHandlers[key].add(handlerDesc)
+  else:
+    eventHandlers.add(key, @[handlerDesc])
+
+proc handleEvent(event: Event) =
+  let key = key(event.receiverId, event.kind)
+
+  if not eventHandlers.hasKey(key):
+    return
+  
+  for eventHandler in eventHandlers[key]:
+    if eventHandler.kind == hkEngine:
+      eventHandler.handler.asProc(eventHandler.userArg, event.arg)
+
+  
+
+proc globalRegister*(eventKind: EventKind, handler: Handler, userArg: pointer, simMask: int32) =
+  registerHandler(
+    key(globalId, eventKind), 
+    HandlerDesc(
+      kind: hkEngine,
+      handler: handler,
+      userArg: userArg,
+      simMask: simMask
+    )
+  )
+
+proc globalNotify*(eventKind: EventKind, eventArg: pointer, eventSource: EventSource) =
+  eventQueue.addLast(
+    Event(
+      kind: eventKind,
+      arg: eventArg,
+      source: eventSource,
+      receiverId: globalId
+    )
+  )
+
+proc init*() =
+  eventHandlers = initTable[uint64, seq[HandlerDesc]]()
+  eventQueue = initDeque[Event]()
+
+proc serviceQueue*() =
+  for event in eventQueue:
+    handleEvent(event)

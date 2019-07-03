@@ -1,4 +1,4 @@
-import sdl2 as sdl, bgfxdotnim, bgfxdotnim/platform, strutils
+import bgfxdotnim, bgfxdotnim/platform, zealpkg / [event, game], sdl2 as sdl, strutils
 
 const
   SDL_MAJOR_VERSION* = 2
@@ -21,6 +21,28 @@ when defined(windows):
 var 
   quit = false
   window: sdl.WindowPtr
+  prevTickEvents: seq[sdl.Event]
+
+proc processSDLEvents() =
+  var event = sdl.default_event
+
+  while sdl.pollEvent(event):
+    prevTickEvents.add(event)
+    globalNotify(EventKind(event.kind), addr prevTickEvents[len(prevTickEvents) - 1], esEngine)
+    case event.kind
+    of sdl.KeyDown:
+      case event.key.keysym.scancode
+      of SDL_SCANCODE_ESCAPE:
+        quit = true
+        break
+      else:
+        discard
+      break
+    else:
+      discard
+
+proc onUserQuit(user: pointer, event: pointer) =
+  quit = true
 
 proc linkSDL2BGFX() =
   var pd: ptr bgfx_platform_data_t = createShared(bgfx_platform_data_t) 
@@ -44,6 +66,8 @@ proc linkSDL2BGFX() =
   freeShared(pd)
 
 proc engineInit(): bool =
+  prevTickEvents = @[]
+
   if sdl.init(sdl.INIT_VIDEO or sdl.INIT_TIMER) < sdl.SdlSuccess:
     stderr.writeLine("Failed to initialize SDL: $1\n" % $sdl.getError())
     return false
@@ -67,23 +91,11 @@ proc engineInit(): bool =
 
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 
+  event.init()
+
+  event.globalRegister(EventKind(sdl.QuitEvent), Handler(asProc: onUserQuit), nil, int32(ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
+
   result = true
-
-proc processSDLEvents() =
-  var event = sdl.default_event
-
-  while sdl.pollEvent(event):
-    case event.kind
-    of sdl.KeyDown:
-      case event.key.keysym.scancode
-      of SDL_SCANCODE_ESCAPE:
-        quit = true
-        break
-      else:
-        discard
-      break
-    else:
-      discard
 
 proc render() =
   discard
@@ -97,4 +109,5 @@ when is_main_module:
 
   while not quit:
     processSDLEvents()
+    event.serviceQueue()
     render()
