@@ -11,8 +11,8 @@ var
   shaders: seq[ShaderResource] = @[
     ShaderResource(
       name: "mesh.static.colored",
-      vertexPath: "shaders/vertex/dx11/basic.bin",
-      fragPath: "shaders/vertex/dx11/colored.bin"
+      vertexPath: "vertex/basic.bin",
+      fragPath: "fragment/colored.bin"
     )
   ]
   programHandles: Table[string, bgfx_program_handle_t]
@@ -21,7 +21,7 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
   var shaderPath: string
   case bgfx_get_renderer_type()
   of BGFX_RENDERER_TYPE_DIRECT3D11:
-    shaderPath = "$1/$2" % [basePath, filePath]
+    shaderPath = "$1/shaders/dx11/$2" % [basePath, filePath]
   else:
     discard
 
