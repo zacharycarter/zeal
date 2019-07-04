@@ -65,7 +65,7 @@ proc linkSDL2BGFX() =
   bgfx_set_platform_data(pd)
   freeShared(pd)
 
-proc engineInit(): bool =
+proc init(): bool =
   prevTickEvents = @[]
 
   if sdl.init(sdl.INIT_VIDEO or sdl.INIT_TIMER) < sdl.SdlSuccess:
@@ -98,13 +98,18 @@ proc engineInit(): bool =
 
   result = true
 
+proc shutdown() =
+  render.shutdown()
+  sdl.destroyWindow(window)
+  sdl.quit()
+
 proc render() =
   discard
 
 when is_main_module:
   var ret = QUIT_SUCCESS
 
-  if not engineInit():
+  if not init():
     ret = QUIT_FAILURE
     quit(ret)
 
@@ -112,3 +117,5 @@ when is_main_module:
     processSDLEvents()
     event.serviceQueue()
     render()
+  
+  shutdown()

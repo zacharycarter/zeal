@@ -63,5 +63,6 @@ proc init*(basePath: string) =
 
     programHandles.add(shader.name, bgfx_create_program(vsh, fsh, true))
 
+proc destroy*() =
   for shaderName, programHandle in programHandles:
     bgfx_destroy_program(programHandle)
