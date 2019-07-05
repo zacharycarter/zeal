@@ -24,11 +24,12 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
     shaderPath = "$1/shaders/dx11/$2" % [basePath, filePath]
   else:
     discard
-
+  
   let stream = sdl.rwFromFile(shaderPath, "r")
   if stream == nil:
     return BGFX_INVALID_HANDLE
   
+  echo "stream opened!"
   let size = size(stream)
   var ret = alloc(size + 1)
   if ret == nil:
@@ -47,11 +48,14 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
     o = cast[pointer](cast[int64](o) + read)
   
   discard close(stream)
-
+  
+  echo readTotal
+  echo size
   if readTotal != size:
     return BGFX_INVALID_HANDLE
 
   zeroMem(o, 1)
+  echo "HERE!"
   result = bgfx_create_shader(bgfx_copy(ret, uint32(size)))
   dealloc(ret)
 

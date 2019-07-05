@@ -23,6 +23,13 @@ var
   window: sdl.WindowPtr
   prevTickEvents: seq[sdl.Event]
 
+proc cbTraceVargs(this: ptr bgfx_callback_interface_t, filePath: cstring, line: uint16, format: cstring, argList: va_list) {.cdecl.} =
+  echo "Here!"
+  echo "$1, $2, $3, $4" % [$filePath, $line, $format, $argList]
+
+proc cbFatal (this: ptr bgfx_callback_interface_t; filePath: cstring; line: uint16; code: bgfx_fatal_t; str: cstring) {.cdecl.} =
+  echo "$filePath, $line, $code, $str" % [$filePath, $line, $code, $str]
+
 proc processSDLEvents() =
   var event = sdl.default_event
 
@@ -82,8 +89,15 @@ proc init(): bool =
   )
 
   linkSDL2BGFX()
+  
+  var callbackInterface = bgfx_callback_interface_t()
+  var callbackVtbl = bgfx_callback_vtbl_t()
+  callbackVtbl.trace_vargs = cbTraceVargs
+  callbackVtbl.fatal = cbFatal
+  callbackInterface.vtbl = addr callbackVtbl
 
   var bgfxInit: bgfx_init_t
+  bgfxInit.callback = addr callbackInterface
   bgfx_init_ctor(addr bgfxInit)
   if not bgfx_init(addr bgfxInit):
     stderr.writeLine("Failed to initialize BGFX")
