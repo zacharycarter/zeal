@@ -6,6 +6,7 @@ description   = "game engine"
 license       = "MIT"
 srcDir        = "src"
 installExt    = @["nim"]
+installDirs   = @["src/zealpkg"]
 bin           = @["zeal"]
 
 

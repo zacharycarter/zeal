@@ -29,7 +29,6 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
   if stream == nil:
     return BGFX_INVALID_HANDLE
   
-  echo "stream opened!"
   let size = size(stream)
   var ret = alloc(size + 1)
   if ret == nil:
@@ -49,13 +48,10 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
   
   discard close(stream)
   
-  echo readTotal
-  echo size
   if readTotal != size:
     return BGFX_INVALID_HANDLE
 
   zeroMem(o, 1)
-  echo "HERE!"
   result = bgfx_create_shader(bgfx_copy(ret, uint32(size)))
   dealloc(ret)
 
