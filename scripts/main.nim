@@ -1,4 +1,4 @@
-import ../src/zealpkg/api
+import ../src/zealpkg/api as z
 
 proc main*() =
-  echo fromZeal()
+  z.newGame("assets/maps", "demo.zmap")

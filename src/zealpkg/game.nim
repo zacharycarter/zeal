@@ -1,3 +1,5 @@
+import asset, map, options
+
 type
   SimState* {.size: sizeof(int32).} = enum
     ssRunning = (1 shl 0),
@@ -9,4 +11,10 @@ type
     simStateChangeTick: uint32
     map: Map
 
-proc newGame(mapDir: string, mapName: string) =
+var gameState: GameState
+
+proc newGame*(mapDir: string, mapName: string) =
+  try:
+    gameState.map = get(loadMap(mapDir, mapName))
+  except UnpackError:
+    discard

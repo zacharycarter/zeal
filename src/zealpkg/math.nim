@@ -6,11 +6,19 @@ type
   NearFar = enum
     nfDefault,
     nfReverse
-  
-  Vec3 = object
+
+  Vec2* = object
     x: float32
     y: float32
-    z: float32
+
+  Vec2i* = object
+    x*: int
+    y*: int
+  
+  Vec3* = object
+    x*: float32
+    y*: float32
+    z*: float32
   
   Plane = object
     normal: Vec3
@@ -22,6 +30,11 @@ type
     z: float32
     w: float32
 
+proc newVec2i*(x, y: int): Vec2i =
+  result = Vec2i(x: x, y: y)
+
+proc newVec3*(x, y, z: float32): Vec3 =
+  result = Vec3(x: x, y: y, z: z)
 
 proc bitsToFloat(a: uint32): float32 {.inline.} =
   result = cast[float32](a)
