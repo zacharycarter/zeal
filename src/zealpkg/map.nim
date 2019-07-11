@@ -1,4 +1,4 @@
-import math, streams, options
+import math, streams, strutils
 
 const 
   tilesPerChunkWidth = 32
@@ -79,38 +79,52 @@ type
     # necessary for the current window resolution at the rendering stage.
     # ------------------------------------------------------------------------
     #
-    minimapVres: Vec2i
+    minimapVres*: Vec2i
     # ------------------------------------------------------------------------
     # Minimap center location, in virtual screen coordinates.
     # ------------------------------------------------------------------------
     #
-    minimapCenterPos: Vec2i
+    minimapCenterPos*: Vec2i
     # ------------------------------------------------------------------------
     # Minimap side length, in virtual screen coordinates.
     # ------------------------------------------------------------------------
     #
-    minimapSz: int
+    minimapSz*: int
     # ------------------------------------------------------------------------
     # Navigation private data for the map.
     # ------------------------------------------------------------------------
     #
-    navPrivate: pointer
+    navPrivate*: pointer
     # ------------------------------------------------------------------------
     # The map chunks stored in row-major order. In total, there must be
     # (width * height) number of chunks.
     # ------------------------------------------------------------------------
     #
-    chunks: seq[Chunk]
+    chunks*: seq[Chunk]
+  
+  MapParsingError* = object of Exception
 
-proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Option[Map] =
-  var map: Map
+proc readMaterial(stream: FileStream, outTexName: var string) =
+  var line: string
+ 
+  assert stream.readLine(line)
+  let splits = line.splitWhitespace()
+  if len(splits) != 3:
+    raise newException(MapParsingError, "failed parsing map materials")
+  
+  outTexName = splits[2]
 
-  map.width = header.numCols
-  map.height = header.numRows
-  map.pos = newVec3(0.0, 0.0, 0.0)
 
-  map.minimapVres = newVec2i(1920, 1080)
-  map.minimapCenterPos = newVec2i(192, 1080 - 192)
-  map.minimapSz = 256
+proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
+  result.width = header.numCols
+  result.height = header.numRows
+  result.pos = newVec3(0.0, 0.0, 0.0)
 
-  result = some(map)
+  result.minimapVres = newVec2i(1920, 1080)
+  result.minimapCenterPos = newVec2i(192, 1080 - 192)
+  result.minimapSz = 256
+
+  var texnames = newSeq[string](header.numMaterials)
+  
+  for i in 0 ..< header.numMaterials:
+    readMaterial(stream, texNames[i])

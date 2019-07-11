@@ -14,7 +14,5 @@ type
 var gameState: GameState
 
 proc newGame*(mapDir: string, mapName: string) =
-  try:
-    gameState.map = get(loadMap(mapDir, mapName))
-  except UnpackError:
-    discard
+  echo "creating new game - loading map..."
+  gameState.map = loadMap(mapDir, mapName)

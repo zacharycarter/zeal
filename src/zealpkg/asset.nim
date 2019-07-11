@@ -1,8 +1,5 @@
 import math, options, strutils, map, streams, strscans
 
-type  
-  MapParsingError = object of Exception
-
 proc parseMapHeader(stream: FileStream, mapHeader: var MapHeader) =
   var line: string
 
@@ -17,27 +14,23 @@ proc parseMapHeader(stream: FileStream, mapHeader: var MapHeader) =
     assert scanf(line, "num_cols $i", mapHeader.numCols)
   except:
     raise newException(MapParsingError, "failed parsing map header")
-  finally:
-    stream.close()
 
-proc loadMapFromStream(basePath: string, stream: var FileStream): Option[Map] =
-  var header: MapHeader
+proc loadMapFromStream(basePath: string): Map =
+  var 
+    header: MapHeader
+    stream: FileStream
 
-  try:
-    stream = newFileStream(basePath)
-  except IOError:
-    return none[Map]()
-
+  stream = openFileStream(basePath)
+  
   try:
     parseMapHeader(stream, header)
     result = initMap(header, basePath, stream)
-  except MapParsingError:
-    return none[Map]()
+  except:
+    raise
+  finally:
+    stream.close()
 
-proc loadMap*(mapDir: string, mapName: string): Option[Map] =
+proc loadMap*(mapDir: string, mapName: string): Map =
   let basePath = "$1/$2" % [mapDir, mapName]
-  
-  var stream: FileStream
-
-  result = loadMapFromStream(basePath, stream)
+  result = loadMapFromStream(basePath)
   return result
