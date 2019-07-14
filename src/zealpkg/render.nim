@@ -24,7 +24,7 @@ proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Verte
   bgfx_vertex_decl_skip(addr renderData.mesh.vDecl, 24)
   bgfx_vertex_decl_skip(addr renderData.mesh.vDecl, 24)
   bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD4, 1, BGFX_ATTRIB_TYPE_INT16, false, false)
-  bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD5, 4, BGFX_ATTRIB_TYPE_FLOAT, false, false)
+  bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD5, 4, BGFX_ATTRIB_TYPE_INT16, false, false)
   bgfx_vertex_decl_end(addr renderData.mesh.vDecl)
 
   var mem = bgfx_make_ref(
