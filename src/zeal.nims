@@ -1,2 +1,4 @@
-switch("hotCodeReloading", "on")
-switch("define", "useNimRtl")
+switch("define", "nimOldCaseObjects")
+when defined(hot):
+  switch("threads", "on")
+

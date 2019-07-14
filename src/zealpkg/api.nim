@@ -1,4 +1,4 @@
-import game
 
-proc newGame*(mapDir, mapName: string) =
-  game.newGame(mapDir, mapName)
+template builtin = discard
+
+proc newGame(mapDir, mapName: string) = builtin

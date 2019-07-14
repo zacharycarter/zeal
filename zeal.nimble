@@ -8,7 +8,7 @@ srcDir        = "src"
 installExt    = @["nim"]
 installDirs   = @["src/zealpkg"]
 bin           = @["zeal"]
-
+binDir        = "."
 
 # Dependencies
 

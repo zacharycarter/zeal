@@ -1,61 +1,6 @@
-import math, streams, strutils
-
-const 
-  tilesPerChunkWidth = 32
-  tilesPerChunkHeight = 32
+import fpmath, streams, strutils, terrain, bgfxdotnim, material, mesh, render, render_asset_load, tile
 
 type
-  TileType = enum
-    # TILETYPE_FLAT:
-    #                     +----------+
-    #                    /          /|
-    #                -  +----------+ +
-    # base_height -> |  |          |/
-    #                -  +----------+
-    #
-    ttFlat
-  
-  BlendMode = enum
-    bmNoBlend,
-    bmBlur
-  
-  Tile = object
-    pathable: bool
-    tileType: TileType
-    baseHeight: int
-    # ------------------------------------------------------------------------
-    # Only valid when 'type' is a ramp or corner tile.
-    # ------------------------------------------------------------------------
-    #
-    rampHeight: int
-    # ------------------------------------------------------------------------
-    # Render-specific tile attributes. Only used for populating private render
-    # data.
-    # ------------------------------------------------------------------------
-    #
-    topMatIdx: int
-    sidesMatIdx: int
-    blendMode: BlendMode
-    blendNormals: bool
-
-  Chunk = object
-    # ------------------------------------------------------------------------
-    # Initialized and used by the rendering subsystem. Holds the mesh data 
-    # and everything the rendering subsystem needs to render this PFChunk.
-    # ------------------------------------------------------------------------
-    #
-    renderData: pointer
-    # ------------------------------------------------------------------------
-    # Worldspace position of the top left corner. 
-    # ------------------------------------------------------------------------
-    #
-    position: Vec3
-    # ------------------------------------------------------------------------
-    # Each tiles' attributes, stored in row-major order.
-    # ------------------------------------------------------------------------
-    #
-    tiles: array[tilesPerChunkHeight * tilesPerChunkWidth, Tile]
-
   MapHeader* = object
     version*: float
     numMaterials*: int
@@ -104,7 +49,41 @@ type
   
   MapParsingError* = object of Exception
 
-proc readMaterial(stream: FileStream, outTexName: var string) =
+proc a2i(a: char): int =
+  result = int(a) - int('0')
+
+proc parseTile(str: string, tile: var Tile) =
+  if len(str) != 24:
+    raise newException(MapParsingError, "failed parsing map tile")
+  
+  tile.kind         = TileKind(parseHexInt($str[0]))
+  tile.baseHeight   = (if str[1] == '-': -1 else: 1) * (10 * a2i(str[2]) + a2i(str[3]))
+  tile.rampHeight   = (10 * a2i(str[4]) + a2i(str[5]))
+  tile.topMatIdx    = (100 * a2i(str[6]) + 10 * a2i(str[7 ]) + a2i(str[8 ]))
+  tile.sidesMatIdx  = (100 * a2i(str[9]) + 10 * a2i(str[10]) + a2i(str[11]))
+  tile.pathable     = bool(a2i(str[12]))
+  tile.blendMode    = BlendMode(a2i(str[13]))
+  tile.blendNormals = bool(a2i(str[14]))
+
+  echo tile
+
+proc readRow(stream: FileStream, tile: var Tile, tilesInRow: var int) =
+  var line: string
+  assert stream.readLine(line)
+  let splits = line.splitWhitespace()
+  for split in splits:
+    parseTile(split, tile)
+    inc(tilesInRow)
+
+proc readChunk(stream: FileStream, chunk: var Chunk) =
+  var tilesRead = 0
+  while tilesRead < tilesPerChunkWidth * tilesPerChunkHeight:
+    var tilesInRow= 0
+    readRow(stream, chunk.tiles[tilesRead], tilesInRow)
+    tilesRead += tilesInRow
+
+
+proc readMaterial(stream: FileStream, texName: var string) =
   var line: string
  
   assert stream.readLine(line)
@@ -112,7 +91,7 @@ proc readMaterial(stream: FileStream, outTexName: var string) =
   if len(splits) != 3:
     raise newException(MapParsingError, "failed parsing map materials")
   
-  outTexName = splits[2]
+  texName = splits[2]
 
 
 proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
@@ -128,3 +107,11 @@ proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
   
   for i in 0 ..< header.numMaterials:
     readMaterial(stream, texNames[i])
+
+  initMapTextures(texnames)
+
+  let numChunks = header.numRows * header.numCols
+  result.chunks = newSeq[Chunk](numChunks)
+  for i in 0 ..< numChunks:
+    readChunk(stream, result.chunks[i])
+    initRenderDataFromTiles(result.chunks[i].tiles, tilesPerChunkWidth, tilesPerChunkHeight, result.chunks[i].renderData)

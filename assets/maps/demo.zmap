@@ -2,17 +2,17 @@ version 1.0
 num_materials 11
 num_rows 4
 num_cols 4
-material Grass grass.png
-material Cliffs cliffs.png
-material Cobblestone cobblestone.jpg
-material Grass2 grass2.jpg
-material Dirty-Grass dirty_grass.jpg
-material Cracked-Dirt cracked_dirt.jpg
-material Dirt-Road dirt_road.jpg
-material Metal-Platform metal_platform.jpg
-material Snowy-Grass snowy_grass.jpg
-material Lava-Ground lava_ground.jpg
-material Sand sand.jpg
+material Grass grass.dds
+material Cliffs cliffs.dds
+material Cobblestone cobblestone.dds
+material Grass2 grass2.dds
+material Dirty-Grass dirty_grass.dds
+material Cracked-Dirt cracked_dirt.dds
+material Dirt-Road dirt_road.dds
+material Metal-Platform metal_platform.dds
+material Snowy-Grass snowy_grass.dds
+material Lava-Ground lava_ground.dds
+material Sand sand.dds
 0+0000000001111000000000 0+0000000001111000000000 0+0000000001111000000000 0+0000000001111000000000
 0+0000000001111000000000 0+0000000001111000000000 0+0000000001111000000000 0+0000000001111000000000
 0+0000000001111000000000 0+0000000001111000000000 0+0000000001111000000000 0+0000000001111000000000

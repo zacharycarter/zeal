@@ -11,8 +11,8 @@ var
   shaders: seq[ShaderResource] = @[
     ShaderResource(
       name: "mesh.static.colored",
-      vertexPath: "vertex/basic.bin",
-      fragPath: "fragment/colored.bin"
+      vertexPath: "vertex/basic_vs.bin",
+      fragPath: "fragment/basic_fs.bin"
     )
   ]
   programHandles: Table[string, bgfx_program_handle_t]

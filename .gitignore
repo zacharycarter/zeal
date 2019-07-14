@@ -40,6 +40,8 @@
 *.i*86
 *.x86_64
 *.hex
+!shadercRelease.exe
+!texturecRelease.exe
 
 # Debug files
 *.dSYM/
@@ -108,4 +110,8 @@ nimcache/
 
 # End of https://www.gitignore.io/api/c,c++,nim,macos
 
-zeal
+### VSCode ###
+.vscode
+
+### zeal ###
+scripts/stdlib
