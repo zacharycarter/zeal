@@ -1,7 +1,7 @@
 import fpmath, bgfxdotnim
 
 type
-  BlendMode* = enum
+  BlendMode* {.size: sizeof(int16).} = enum
     bmNoBlend,
     bmBlur
 
@@ -9,11 +9,11 @@ type
     pos*: Vec3
     uv*: Vec2
     normal*: Vec3
-    materialIdx*: int
+    materialIdx*: int16
     jointIndices*: array[6, int]
     weights*: array[6, float32]
     blendMode*: BlendMode
-    adjacentMatIndices*: array[4, int]
+    adjacentMatIndices*: array[4, int16]
   
   ColoredVert* = object
     pos*: Vec3

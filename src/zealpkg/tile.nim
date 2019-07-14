@@ -111,8 +111,8 @@ type
     # Render-specific tile attributes. Only used for populating private render
     # data.
     # ------------------------------------------------------------------------
-    topMatIdx*: int
-    sidesMatIdx*: int
+    topMatIdx*: int16
+    sidesMatIdx*: int16
     blendMode*: BlendMode
     blendNormals*: bool
 
