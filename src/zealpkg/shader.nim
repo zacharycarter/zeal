@@ -13,9 +13,14 @@ var
       name: "mesh.static.colored",
       vertexPath: "vertex/basic_vs.bin",
       fragPath: "fragment/basic_fs.bin"
+    ),
+    ShaderResource(
+      name: "terrain",
+      vertexPath: "vertex/terrain_vs.bin",
+      fragPath: "fragment/terrain_fs.bin"
     )
   ]
-  programHandles: Table[string, bgfx_program_handle_t]
+  programHandles*: Table[string, bgfx_program_handle_t]
 
 proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
   var shaderPath: string
@@ -56,7 +61,6 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
   dealloc(ret)
 
 proc init*(basePath: string) =
-  programHandles = initTable[string, bgfx_program_handle_t]()
   for shader in shaders:
     let vsh = loadShader(basePath, shader.vertexPath)
     let fsh = if shader.fragPath.len > 0: loadShader(basePath, shader.fragPath) else: BGFX_INVALID_HANDLE

@@ -3,7 +3,7 @@ import bgfxdotnim, texture
 const TILE_TEX_RES = 128
 
 proc createTextureArrayMap*(texnames: seq[string]): bgfx_texture_handle_t =
-  var textureArrayData: seq[uint8] = @[]
+  var textureArrayData: seq[uint8]
 
   for texname in texnames:
     var image: Image 

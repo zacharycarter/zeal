@@ -98,7 +98,6 @@ proc globalNotify*(eventKind: EventKind, eventArg: pointer, eventSource: EventSo
   )
 
 proc init*() =
-  eventHandlers = initTable[uint64, seq[HandlerDesc]]()
   eventQueue = initDeque[Event]()
 
 proc serviceQueue*() =

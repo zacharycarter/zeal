@@ -285,7 +285,7 @@ proc read*(self: var DdsReader; f: File; destination: var seq[uint8]): bool =
 proc loadDDS*(path: string, image: var Image): bool =
   var 
     ddsReader: DdsReader
-    bytesRead: seq[uint8] = @[]
+    bytesRead: seq[uint8]
   
   let f = open(path, fmRead)
   assert(ddsReader.init(f), "failed to initialize dds reader")
