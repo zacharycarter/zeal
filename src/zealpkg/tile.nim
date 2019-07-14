@@ -1,4 +1,10 @@
-import fpmath, render, vertex
+import fpmath, render, vertex, math
+
+template `+`*[T](p: ptr T, off: int): ptr T =
+  cast[ptr type(p[])](cast[ByteAddress](p) +% off * sizeof(p[]))
+
+template `+=`*[T](p: ptr T, off: int) =
+  p = p + off
 
 const
   tilesPerChunkWidth*  = 32
@@ -7,15 +13,76 @@ const
   yCoordsPerTile = 4
   zCoordsPerTile = 8
 
+# Each top face is made up of 8 triangles, in the following configuration:
+#   +------+------+
+#   |\     |     |
+#   |  \   |     |
+#   |    \ |     |
+#   +------+------+
+#   |     | \    |
+#   |     |   \  |
+#   |     |     \|
+#   +------+------+
+# Each face can be thought of as being made of of 4 "major" triangles,
+# each of which has its' own adjacency info as a flat attribute. The 4 major
+# triangles are the minimal configuration that is necessary for the blending
+# system to work.
+#   +------+------+
+#   |\           |
+#   |  \   2     |
+#   |    \       |
+#   +  1  >+<  3  +
+#   |       \    |
+#   |     0   \  |
+#   |           \|
+#   +------+------+
+# The "major" trinagles can be futher subdivided. The triangles they are divided 
+# into must inherit the flat adjacency attributes and interpolate their positions, 
+# uv coorinates, and normals. In our case, we futher subdivide each of the major
+# triangles into 2 triangles. This is to give an extra vertex on the midpoint 
+# of each edge. When smoothing the normals, this extra point having its' own 
+# normal is essential. Care must be taken to ensure the appropriate winding order
+# for each triangle for backface culling!
+
 type
+  VertTris* = object
+    se0*: Vertex               ##  Tri 0
+    s0*: Vertex
+    center0*: Vertex           ##  Tri 1
+    center1*: Vertex
+    s1*: Vertex
+    sw0*: Vertex               ##  Tri 2
+    sw1*: Vertex
+    w0*: Vertex
+    center2*: Vertex           ##  Tri 3
+    center3*: Vertex
+    w1*: Vertex
+    nw0*: Vertex               ##  Tri 4
+    nw1*: Vertex
+    n0*: Vertex
+    center4*: Vertex           ##  Tri 5
+    center5*: Vertex
+    n1*: Vertex
+    ne0*: Vertex               ##  Tri 6
+    ne1*: Vertex
+    e0*: Vertex
+    center6*: Vertex           ##  Tri 7
+    center7*: Vertex
+    e1*: Vertex
+    se1*: Vertex
+
+  TopFaceVbuff* {.union.} = object
+    verts*: array[vertsPerTopFace, Vertex]
+    tris*: array[vertsPerTopFace div 3, Tri]
+    vertTris*: VertTris
+
   TileKind* {.size: sizeof(int32).} = enum
     # TILEKIND_FLAT:
     #                     +----------+
     #                    /          /|
     #                -  +----------+ +
-    # base_height -> |  |          |/
+    # base_height . |  |          |/
     #                -  +----------+
-    #
     tkFlat            = 0x0
     # By convention, the second letter (ex. 'N' in 'SN') is the raised end
     tkRampSN          = 0x1
@@ -32,10 +99,6 @@ type
     tkCornerConcaveNE = 0xb
     tkCornerConvexNE  = 0xc
   
-  BlendMode* = enum
-    bmNoBlend,
-    bmBlur
-  
   Tile* = object
     pathable*: bool
     kind*: TileKind
@@ -43,13 +106,11 @@ type
     # ------------------------------------------------------------------------
     # Only valid when 'type' is a ramp or corner tile.
     # ------------------------------------------------------------------------
-    #
     rampHeight*: int
     # ------------------------------------------------------------------------
     # Render-specific tile attributes. Only used for populating private render
     # data.
     # ------------------------------------------------------------------------
-    #
     topMatIdx*: int
     sidesMatIdx*: int
     blendMode*: BlendMode
@@ -60,22 +121,36 @@ type
     # Initialized and used by the rendering subsystem. Holds the mesh data 
     # and everything the rendering subsystem needs to render this PFChunk.
     # ------------------------------------------------------------------------
-    #
     renderData*: RenderData
     # ------------------------------------------------------------------------
     # Worldspace position of the top left corner. 
     # ------------------------------------------------------------------------
-    #
     position*: Vec3
     # ------------------------------------------------------------------------
     # Each tiles' attributes, stored in row-major order.
     # ------------------------------------------------------------------------
-    #
     tiles*: array[tilesPerChunkHeight * tilesPerChunkWidth, Tile]
 
-type
-  Face* = object
+  Face = object
     nw, ne, se, sw: Vertex
+  
+  Tri = object
+    verts: array[3, Vertex]
+
+template mag*(x, y: untyped): untyped =
+  sqrt(pow(float32(x), 2) + pow(float32(y), 2))
+
+proc isRampTile(tk: TileKind): bool =
+  result = tk == tkRampSN or 
+           tk == tkRampNS or
+           tk == tkRampEW or
+           tk == tkRampWE
+
+proc isCornerConvexTile(tk: TileKind): bool =
+  result = tk == tkCornerConvexSW or 
+           tk == tkCornerConvexSE or
+           tk == tkCornerConvexNW or
+           tk == tkCornerConvexNE
 
 proc tileNWHeight(tile: Tile): int =
   let topNWRaised = tile.kind == tkRampSN or
@@ -129,11 +204,105 @@ proc tileSEHeight(tile: Tile): int =
   else:
     result = tile.baseHeight
 
-proc getTileVertices*(tile: Tile, vertices: var seq[Vertex], r, c: int) =
+proc tileTopNormals(tile: Tile, topTriNormals: var array[2, Vec3], triTopLeftAligned: var bool) =
+  case tile.kind
+  of tkFlat:
+    topTriNormals[0] = newVec3(0.0, 1.0, 0.0)
+    topTriNormals[1] = newVec3(0.0, 1.0, 0.0)
+
+    triTopLeftAligned = true
+  of tkRampSN:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(zCoordsPerTile))
+
+    topTriNormals[0] = newVec3(0.0, sin(normalAngle), cos(normalAngle))
+    topTriNormals[1] = newVec3(0.0, sin(normalAngle), cos(normalAngle))
+
+    triTopLeftAligned = true
+  of tkRampNS:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(zCoordsPerTile))
+
+    topTriNormals[0] = newVec3(0.0, sin(normalAngle), -cos(normalAngle))
+    topTriNormals[1] = newVec3(0.0, sin(normalAngle), -cos(normalAngle))
+
+    triTopLeftAligned = true
+  of tkRampEW:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(xCoordsPerTile))
+
+    topTriNormals[0] = newVec3(-cos(normalAngle), sin(normalAngle), 0.0)
+    topTriNormals[1] = newVec3(-cos(normalAngle), sin(normalAngle), 0.0)
+
+    triTopLeftAligned = true
+  of tkRampWE:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(xCoordsPerTile))
+
+    topTriNormals[0] = newVec3(cos(normalAngle), sin(normalAngle), 0.0)
+    topTriNormals[1] = newVec3(cos(normalAngle), sin(normalAngle), 0.0)
+
+    triTopLeftAligned = true
+  of tkCornerConcaveSW:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+
+    topTriNormals[0] = newVec3(0.0, 1.0, 0.0)
+    topTriNormals[1] = newVec3(cos(normalAngle) * cos(PI/4.0), sin(normalAngle), cos(normalAngle) * sin(PI/4.0))
+
+    triTopLeftAligned = false
+  of tkCornerConvexSW:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+
+    topTriNormals[0] = newVec3(cos(normalAngle) * cos(PI/4.0), sin(normalAngle), cos(normalAngle) * sin(PI/4.0))
+    topTriNormals[1] = newVec3(0.0, 1.0, 0.0)
+
+    triTopLeftAligned = false
+  of tkCornerConcaveSE:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+
+    topTriNormals[0] = newVec3(0.0, 1.0, 0.0)
+    topTriNormals[1] = newVec3(-cos(normalAngle) * cos(PI/4.0), sin(normalAngle), cos(normalAngle) * sin(PI/4.0))
+
+    triTopLeftAligned = true
+  of tkCornerConvexSE:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+    
+    topTriNormals[0] = newVec3(-cos(normalAngle) * cos(PI/4.0), sin(normalAngle), cos(normalAngle) * sin(PI/4.0))
+    topTriNormals[1] = newVec3(0.0, 1.0, 0.0)
+
+    triTopLeftAligned = true
+  of tkCornerConcaveNW:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+    
+    topTriNormals[0] = newVec3(cos(normalAngle) * cos(PI/4.0), sin(normalAngle), -cos(normalAngle) * sin(PI/4.0))
+    topTriNormals[1] = newVec3(0.0, 1.0, 0.0)
+
+    triTopLeftAligned = true
+  of tkCornerConvexNW:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+    
+    topTriNormals[0] = newVec3(0.0, 1.0, 0.0)
+    topTriNormals[1] = newVec3(cos(normalAngle) * cos(PI/4.0), sin(normalAngle), -cos(normalAngle) * sin(PI/4.0))
+
+    triTopLeftAligned = true
+  of tkCornerConcaveNE:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+    
+    topTriNormals[0] = newVec3(-cos(normalAngle) * cos(PI/4.0), sin(normalAngle), -cos(normalAngle) * sin(PI/4.0))
+    topTriNormals[1] = newVec3(0.0, 1.0, 0.0)
+
+    triTopLeftAligned = false
+  of tkCornerConvexNE:
+    let normalAngle = PI/2.0 - arctan2(float32(tile.rampHeight * yCoordsPerTile), float32(mag(xCoordsPerTile, zCoordsPerTile) / 2.0))
+    
+    topTriNormals[0] = newVec3(0.0, 1.0, 0.0)
+    topTriNormals[1] = newVec3(-cos(normalAngle) * cos(PI/4.0), sin(normalAngle), -cos(normalAngle) * sin(PI/4.0))
+
+    triTopLeftAligned = false
+  
+  normalize(topTriNormals[0])
+  normalize(topTriNormals[1])
+
+proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
   # Bottom face is always the same (just shifted over based on row and column), and the 
   # front, back, left, right faces just connect the top and bottom faces. The only 
-  # variations are in the top face, which has some corners raised based on tile type. 
-  #
+  # variations are in the top face, which has some corners raised based on tile type.
   let bot = Face(
     nw: Vertex(
       pos: newVec3(0.0 - float32((c+1) * xCoordsPerTile), (-1.0 * yCoordsPerTile), 0.0 + float32(r * zCoordsPerTile)),
@@ -246,3 +415,247 @@ proc getTileVertices*(tile: Tile, vertices: var seq[Vertex], r, c: int) =
       materialIdx: tile.sidesMatIdx
     )
   )
+  
+  let left = Face(
+    nw: Vertex(
+      pos: top.nw.pos,
+      uv: newVec2(0.0, vCoord(xCoordsPerTile, top.nw.pos.y)),
+      normal: newVec3(1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    ),
+    ne: Vertex(
+      pos: top.sw.pos,
+      uv: newVec2(1.0, vCoord(xCoordsPerTile, top.sw.pos.y)),
+      normal: newVec3(1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    ),
+    se: Vertex(
+      pos: bot.se.pos,
+      uv: newVec2(1.0, 0.0),
+      normal: newVec3(1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    ),
+    sw: Vertex(
+      pos: bot.ne.pos,
+      uv: newVec2(0.0, 0.0),
+      normal: newVec3(1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    )
+  )
+
+  let right = Face(
+    nw: Vertex(
+      pos: top.se.pos,
+      uv: newVec2(0.0, vCoord(xCoordsPerTile, top.se.pos.y)),
+      normal: newVec3(-1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    ),
+    ne: Vertex(
+      pos: top.ne.pos,
+      uv: newVec2(1.0, vCoord(xCoordsPerTile, top.ne.pos.y)),
+      normal: newVec3(-1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    ),
+    se: Vertex(
+      pos: bot.nw.pos,
+      uv: newVec2(1.0, 0.0),
+      normal: newVec3(-1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    ),
+    sw: Vertex(
+      pos: bot.sw.pos,
+      uv: newVec2(0.0, 0.0),
+      normal: newVec3(-1.0, 0.0, 0.0),
+      materialIdx: tile.sidesMatIdx
+    )
+  )
+
+  let faces = [bot, front, left, right]
+  for i in 0 ..< len(faces):
+    var curr = faces[i]
+    # First triangle
+    copymem(outVert + (i * vertsPerSideFace) + 0, addr curr.nw, sizeof(Vertex))
+    copymem(outVert + (i * vertsPerSideFace) + 1, addr curr.ne, sizeof(Vertex))
+    copymem(outVert + (i * vertsPerSideFace) + 2, addr curr.sw, sizeof(Vertex))
+
+    # Second triangle
+    copymem(outVert + (i * vertsPerSideFace) + 3, addr curr.se, sizeof(Vertex))
+    copymem(outVert + (i * vertsPerSideFace) + 4, addr curr.sw, sizeof(Vertex))
+    copymem(outVert + (i * vertsPerSideFace) + 5, addr curr.ne, sizeof(Vertex))
+
+  # Lastly, the top face. Unlike the other five faces, it can have different 
+  # normals for its' two triangles, and the triangles can be arranged differently 
+  # at corner tiles.
+  
+  var 
+    topTriNormals: array[2, Vec3]
+    topTriLeftAligned: bool
+  
+  tileTopNormals(tile, topTriNormals, topTriLeftAligned)
+
+  # CONFIG 1 (left-aligned)   CONFIG 2
+  # (nw)      (ne)            (nw)      (ne)
+  # +---------+               +---------+
+  # |Tri1   / |               | \   Tri1|
+  # |     /   |               |   \     |
+  # |   /     |               |     \   |
+  # | /   Tri0|               |Tri0   \ |
+  # +---------+               +---------+
+  # (sw)      (se)            (sw)      (se)
+
+  let 
+    centerHeight = if isRampTile(tile.kind): float32(tile.baseHeight + tile.rampHeight) / 2.0 
+                   else: (if isCornerConvexTile(tile.kind): float32(tile.baseHeight + tile.rampHeight) else: float32(tile.baseHeight))
+  
+    centerVertPos = newVec3(
+      top.nw.pos.x - xCoordsPerTile / 2.0,
+      centerHeight * yCoordsPerTile,
+      top.nw.pos.z + zCoordsPerTile / 2.0
+    )
+
+    tri0SideMat = abs(topTriNormals[0].y) < 1.0 and tile.rampHeight > 1
+    tri1SideMat = abs(topTriNormals[1].y) < 1.0 and tile.rampHeight > 1
+
+    tri0Idx = if tri0SideMat: tile.sidesMatIdx else: tile.topMatIdx
+    tri1Idx = if tri1SideMat: tile.sidesMatIdx else: tile.topMatIdx
+
+    centerVertTri0 = Vertex(
+      pos: centerVertPos,
+      uv: newVec2(0.5, 0.5),
+      normal: topTriNormals[0],
+      materialIdx: tri0Idx
+    )
+
+    centerVertTri1 = Vertex(
+      pos: centerVertPos,
+      uv: newVec2(0.5, 0.5),
+      normal: topTriNormals[1],
+      materialIdx: tri1Idx
+    )
+
+    northVert = Vertex(
+      pos: newVec3(
+        (top.ne.pos.x + top.nw.pos.x)/2.0,
+        (top.ne.pos.y + top.nw.pos.y)/2.0,
+        (top.ne.pos.z + top.nw.pos.z)/2.0
+      ),
+      uv: newVec2(0.5, 1.0),
+      normal: topTriNormals[1],
+      materialIdx: tri1Idx
+    )
+
+    southVert = Vertex(
+      pos: newVec3(
+        (top.se.pos.x + top.sw.pos.x)/2.0,
+        (top.se.pos.y + top.sw.pos.y)/2.0,
+        (top.se.pos.z + top.sw.pos.z)/2.0
+      ),
+      uv: newVec2(0.5, 0.0),
+      normal: topTriNormals[0],
+      materialIdx: tri0Idx
+    )
+
+    westVert = Vertex(
+      pos: newVec3(
+        (top.sw.pos.x + top.nw.pos.x)/2.0,
+        (top.sw.pos.y + top.nw.pos.y)/2.0,
+        (top.sw.pos.z + top.nw.pos.z)/2.0
+      ),
+      uv: newVec2(0.0, 0.5),
+      normal: if topTriLeftAligned: topTriNormals[1] else: topTriNormals[0],
+      materialIdx: if topTriLeftAligned: tri1Idx else: tri0Idx
+    )
+
+    eastVert = Vertex(
+      pos: newVec3(
+        (top.se.pos.x + top.ne.pos.x)/2.0,
+        (top.se.pos.y + top.ne.pos.y)/2.0,
+        (top.se.pos.z + top.ne.pos.z)/2.0
+      ),
+      uv: newVec2(1.0, 0.5),
+      normal: if topTriLeftAligned: topTriNormals[0] else: topTriNormals[1],
+      materialIdx: if topTriLeftAligned: tri0Idx else: tri1Idx
+    )
+
+  assert(sizeof(TopFaceVbuff) == vertsPerTopFace * sizeof(Vertex))
+  var tfvb = cast[ptr TopFaceVbuff](outVert + 5 * vertsPerSideFace)
+  tfvb.vertTris.se0 = top.se
+  tfvb.vertTris.s0 = southVert
+  tfvb.vertTris.center0 = centerVertTri0
+  tfvb.vertTris.center1 = centerVertTri0
+  tfvb.vertTris.s1 = southVert
+  tfvb.vertTris.sw0 = top.sw
+  tfvb.vertTris.sw1 = top.sw
+  tfvb.vertTris.w0 = westVert
+  tfvb.vertTris.center2 = if topTriLeftAligned: centerVertTri1 else: centerVertTri0
+  tfvb.vertTris.center3 = if topTriLeftAligned: centerVertTri1 else: centerVertTri0
+  tfvb.vertTris.w1 = westVert
+  tfvb.vertTris.nw0 = top.nw
+  tfvb.vertTris.nw1 = top.nw
+  tfvb.vertTris.n0 = northVert
+  tfvb.vertTris.center4 = centerVertTri1
+  tfvb.vertTris.center5 = centerVertTri1
+  tfvb.vertTris.n1 = northVert
+  tfvb.vertTris.ne0 = top.ne
+  tfvb.vertTris.ne1 = top.ne
+  tfvb.vertTris.e0 = eastVert
+  tfvb.vertTris.center6 = if topTriLeftAligned: centerVertTri0 else: centerVertTri1
+  tfvb.vertTris.center7 = if topTriLeftAligned: centerVertTri0 else: centerVertTri1
+  tfvb.vertTris.e1 = eastVert
+  tfvb.vertTris.se1 = top.se
+  
+  tfvb.vertTris.center0.pos.z -= 0.005
+  tfvb.vertTris.center1.pos.z -= 0.005
+  tfvb.vertTris.center2.pos.x -= 0.005
+  tfvb.vertTris.center3.pos.x -= 0.005
+  tfvb.vertTris.center4.pos.z += 0.005
+  tfvb.vertTris.center5.pos.z += 0.005
+  tfvb.vertTris.center6.pos.x += 0.005
+  tfvb.vertTris.center7.pos.x += 0.005
+
+  if topTriLeftAligned:
+    tfvb.vertTris.se0.material_idx = tri0Idx
+    tfvb.vertTris.sw0.material_idx = tri0Idx
+    tfvb.vertTris.sw1.material_idx = tri1Idx
+    tfvb.vertTris.nw0.material_idx = tri1Idx
+    tfvb.vertTris.nw1.material_idx = tri1Idx
+    tfvb.vertTris.ne0.material_idx = tri1Idx
+    tfvb.vertTris.ne1.material_idx = tri0Idx
+    tfvb.vertTris.se1.material_idx = tri0Idx
+
+    tfvb.vertTris.se0.normal = topTriNormals[0]
+    tfvb.vertTris.sw0.normal = topTriNormals[0]
+    tfvb.vertTris.sw1.normal = topTriNormals[1]
+    tfvb.vertTris.nw0.normal = topTriNormals[1]
+    tfvb.vertTris.nw1.normal = topTriNormals[1]
+    tfvb.vertTris.ne0.normal = topTriNormals[1]
+    tfvb.vertTris.ne1.normal = topTriNormals[0]
+    tfvb.vertTris.se1.normal = topTriNormals[0]
+  else:
+    tfvb.vertTris.se0.material_idx = tri0Idx
+    tfvb.vertTris.sw0.material_idx = tri0Idx
+    tfvb.vertTris.sw1.material_idx = tri0Idx
+    tfvb.vertTris.nw0.material_idx = tri0Idx
+    tfvb.vertTris.nw1.material_idx = tri1Idx
+    tfvb.vertTris.ne0.material_idx = tri1Idx
+    tfvb.vertTris.ne1.material_idx = tri1Idx
+    tfvb.vertTris.se1.material_idx = tri1Idx
+
+    tfvb.vertTris.se0.normal = topTriNormals[0]
+    tfvb.vertTris.sw0.normal = topTriNormals[0]
+    tfvb.vertTris.sw1.normal = topTriNormals[0]
+    tfvb.vertTris.nw0.normal = topTriNormals[0]
+    tfvb.vertTris.nw1.normal = topTriNormals[1]
+    tfvb.vertTris.ne0.normal = topTriNormals[1]
+    tfvb.vertTris.ne1.normal = topTriNormals[1]
+    tfvb.vertTris.se1.normal = topTriNormals[1]
+
+  var currProvoking: ptr Vertex = outVert
+  while currProvoking < outVert + (5 * vertsPerSideFace):
+    currProvoking.blendMode = bmNoBlend
+    currProvoking += 3
+
+  currProvoking = outVert + (5 * vertsPerSideFace)
+  while currProvoking < outVert + vertsPerTile:
+    currProvoking.blendMode = tile.blendMode
+    currProvoking += 3

@@ -1,4 +1,4 @@
-import fpmath, streams, strutils, terrain, bgfxdotnim, material, mesh, render, render_asset_load, tile
+import fpmath, streams, strutils, terrain, bgfxdotnim, material, mesh, render, render_asset_load, tile, vertex
 
 type
   MapHeader* = object
@@ -64,8 +64,6 @@ proc parseTile(str: string, tile: var Tile) =
   tile.pathable     = bool(a2i(str[12]))
   tile.blendMode    = BlendMode(a2i(str[13]))
   tile.blendNormals = bool(a2i(str[14]))
-
-  echo tile
 
 proc readRow(stream: FileStream, tile: var Tile, tilesInRow: var int) =
   var line: string

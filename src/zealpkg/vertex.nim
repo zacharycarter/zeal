@@ -1,6 +1,10 @@
 import fpmath, bgfxdotnim
 
 type
+  BlendMode* = enum
+    bmNoBlend,
+    bmBlur
+
   Vertex* = object
     pos*: Vec3
     uv*: Vec2
@@ -8,7 +12,7 @@ type
     materialIdx*: int
     jointIndices*: array[6, int]
     weights*: array[6, float32]
-    blendMode*: int
+    blendMode*: BlendMode
     adjacentMatIndices*: array[4, int]
   
   ColoredVert* = object

@@ -5,7 +5,11 @@ proc initRenderDataFromTiles*(tiles: openArray[Tile], width, height: int, render
 
   renderData.mesh.numVerts = numVerts
   
-  var vbuf = newSeq[Vertex](numVerts)
+  var vBuff = newSeq[Vertex](numVerts)
   for r in 0 ..< height:
     for c in 0 ..< width:
-      getTileVertices(tiles[r * width + c], vbuf, r, c)
+      getTileVertices(tiles[r * width + c], addr vbuff[(r * width + c) * vertsPerTile], r, c)
+  
+  initVBuff(renderData, "terrain", vbuff)
+  
+
