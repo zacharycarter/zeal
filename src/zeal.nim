@@ -97,13 +97,14 @@ proc init(): bool =
     stderr.writeLine("Failed to initialize BGFX")
     return false
 
-  bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
-
+  
   render.init(paramStr(1))
   event.init()
 
   event.globalRegister(EventKind(sdl.QuitEvent), Handler(asProc: onUserQuit), nil, int32(ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
-
+  
+  game.init()
+  
   result = true
 
 proc shutdown() =

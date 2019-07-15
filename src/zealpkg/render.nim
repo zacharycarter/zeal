@@ -46,6 +46,8 @@ proc init*(basePath: string) =
 
   shader.init(basePath)
 
+  bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
+
 proc shutdown*() =
   terrain.destroy()
   shader.destroy()

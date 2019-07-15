@@ -1,4 +1,5 @@
 import math
+export math
 
 type 
   Handness = enum
@@ -31,7 +32,7 @@ type
     normal: Vec3
     dist: float32
   
-  Quaternion = object
+  Quaternion* = object
     x: float32
     y: float32
     z: float32

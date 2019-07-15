@@ -1,4 +1,4 @@
-import fpmath, render, vertex, math
+import fpmath, render, vertex
 
 template `+`*[T](p: ptr T, off: int): ptr T =
   cast[ptr type(p[])](cast[ByteAddress](p) +% off * sizeof(p[]))
