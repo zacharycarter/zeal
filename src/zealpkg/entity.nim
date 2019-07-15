@@ -16,5 +16,5 @@ type
     filename: string
     pos: Vec3
     scale: Vec3
-    rotation: Quaternion
+    rotation: Quat
     flags: uint32

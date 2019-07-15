@@ -1,4 +1,4 @@
-import asset, camera, entity, map, collision, options, tables
+import asset, camera, entity, map, render, collision, fpmath, tables
 
 const 
   numCameras = 2
@@ -7,6 +7,10 @@ const
   camSpeed = 0.20f
 
 type
+  CameraMode = enum
+    cmRTS,
+    cmFPS
+
   SimState* {.size: sizeof(int32).} = enum
     ssRunning = (1 shl 0),
     ssPausedFull = (1 shl 1),
@@ -42,12 +46,33 @@ type
 
 var gameState: GameState
 
+proc activateCamera(camIdx: int, mode: CameraMode) =
+  if not (camIdx >= 0 and camIdx < numCameras):
+    return
+  
+  gameState.activeCamIdx = camIdx
+
+  # TODO: Camera Controls
+  # case mode
+  # of cmRTS: cameraControlRTS(gamestate.cameras[camIdx])
+  # of cmFPS: cameraControlFPS(gamestate.cameras[camIdx])
+
+
+proc reset(camera: var Camera) =
+  setPitchAndYaw(camera, -(90.0'f32 - camTiltUpDegrees), 90.0'f32 + 45.0'f32)
+  setPosition(camera, [0.0'f32, camHeight, 0.0])
+
 proc initCameras() =
   for i in 0 ..< numCameras:
-    discard
-    # setCameraSpeed(gameState.cameras[i], camSpeed)
-    # setCameraSens(gameState.cameras[i], 0.05'f32)
-    # resetCamera((gameState.cameras[i])
+    setSpeed(gameState.cameras[i], camSpeed)
+    setSensitivity(gameState.cameras[i], 0.05'f32)
+    reset(gameState.cameras[i])
+
+proc reset() =
+  activateCamera(0, cmRTS)
+
+proc render*() =
+  renderVisibleMap(gameState.map, gameState.cameras[gamestate.activeCamIdx], rpRegular)
 
 proc init*() =
   discard

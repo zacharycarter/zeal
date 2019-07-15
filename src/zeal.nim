@@ -104,7 +104,7 @@ proc init(): bool =
   event.globalRegister(EventKind(sdl.QuitEvent), Handler(asProc: onUserQuit), nil, int32(ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
   
   game.init()
-  
+
   result = true
 
 proc shutdown() =
@@ -112,9 +112,6 @@ proc shutdown() =
   render.shutdown()
   sdl.destroyWindow(window)
   sdl.quit()
-
-proc render() =
-  discard
 
 proc run*() =
   var ret = QUIT_SUCCESS

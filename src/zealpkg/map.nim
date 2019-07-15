@@ -1,4 +1,4 @@
-import fpmath, streams, strutils, terrain, bgfxdotnim, material, mesh, render, render_asset_load, tile, vertex
+import camera, collision, fpmath, streams, strutils, terrain, bgfxdotnim, material, mesh, render, render_asset_load, tile, vertex
 
 type
   MapHeader* = object
@@ -24,12 +24,12 @@ type
     # necessary for the current window resolution at the rendering stage.
     # ------------------------------------------------------------------------
     #
-    minimapVres*: Vec2i
+    minimapVres*: array[2, int]
     # ------------------------------------------------------------------------
     # Minimap center location, in virtual screen coordinates.
     # ------------------------------------------------------------------------
     #
-    minimapCenterPos*: Vec2i
+    minimapCenterPos*: array[2, int]
     # ------------------------------------------------------------------------
     # Minimap side length, in virtual screen coordinates.
     # ------------------------------------------------------------------------
@@ -51,6 +51,28 @@ type
 
 proc a2i(a: char): int =
   result = int(a) - int('0')
+
+proc modelMatrixForChunk(map: Map, cp: ChunkPos, mtx: var array[16, float32]) =
+  let
+    xOffset = -(cp.c * tilesPerChunkWidth * xCoordsPerTile)
+    zOffset = cp.r * tilesPerChunkHeight * zCoordsPerTile
+    chunkPos = [map.pos[0] + float32(xOffset), map.pos[1], map.pos[2] + float32(zOffset)]
+  
+  # mtxTranslate(mtx, chunkPos[0], chunkPos[1], chunkPos[2])
+  mtxProj(mtx, 60.0'f32, 960.0'f32 / 540.0'f32, 0.1'f32, 100.0'f32, rendererCaps.homogeneousDepth)
+  
+
+proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
+  var frustum: Frustum
+  makeFrustum(cam, frustum)
+
+  # for r in 0 ..< map.height:
+  #   for c in 0 ..< map.width:
+  #     var chunkModel: Mat4
+  #     let chunk = map.chunks[map.width * r + c]
+  #     modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
+  var chunkModel: Mat4
+  draw(map.chunks[0].renderData, chunkModel)
 
 proc parseTile(str: string, tile: var Tile) =
   if len(str) != 24:
@@ -95,10 +117,10 @@ proc readMaterial(stream: FileStream, texName: var string) =
 proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
   result.width = header.numCols
   result.height = header.numRows
-  result.pos = newVec3(0.0, 0.0, 0.0)
+  result.pos = [0.0'f32, 0.0, 0.0]
 
-  result.minimapVres = newVec2i(1920, 1080)
-  result.minimapCenterPos = newVec2i(192, 1080 - 192)
+  result.minimapVres = [1920, 1080]
+  result.minimapCenterPos = [192, 1080 - 192]
   result.minimapSz = 256
 
   var texnames = newSeq[string](header.numMaterials)

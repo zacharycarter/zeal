@@ -10,7 +10,7 @@ type
 var 
   shaders: seq[ShaderResource] = @[
     ShaderResource(
-      name: "mesh.static.colored",
+      name: "basic",
       vertexPath: "vertex/basic_vs.bin",
       fragPath: "fragment/basic_fs.bin"
     ),

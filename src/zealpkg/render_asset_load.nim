@@ -10,6 +10,6 @@ proc initRenderDataFromTiles*(tiles: openArray[Tile], width, height: int, render
     for c in 0 ..< width:
       getTileVertices(tiles[r * width + c], addr vbuff[(r * width + c) * vertsPerTile], r, c)
   
-  initVBuff(renderData, "terrain", vbuff)
+  initVBuff(renderData, "basic", vbuff)
   
 
