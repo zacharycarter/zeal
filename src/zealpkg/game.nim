@@ -1,4 +1,10 @@
-import asset, entity, map, collision, options, tables
+import asset, camera, entity, map, collision, options, tables
+
+const 
+  numCameras = 2
+  camHeight = 175.0f
+  camTiltUpDegrees = 25.0f
+  camSpeed = 0.20f
 
 type
   SimState* {.size: sizeof(int32).} = enum
@@ -12,6 +18,9 @@ type
     # The SDL tick during which we last changed simulation states.
     #-------------------------------------------------------------------------
     simStateChangeTick: uint32
+    map: Map
+    activeCamIdx: int
+    cameras: array[numCameras, Camera]
     #-------------------------------------------------------------------------
     # The set of entities potentially visible by the active camera.
     #-------------------------------------------------------------------------
@@ -30,9 +39,15 @@ type
     #-------------------------------------------------------------------------
     dynamic: Table[string, Entity]
     numFactions: int
-    map: Map
 
 var gameState: GameState
+
+proc initCameras() =
+  for i in 0 ..< numCameras:
+    discard
+    # setCameraSpeed(gameState.cameras[i], camSpeed)
+    # setCameraSens(gameState.cameras[i], 0.05'f32)
+    # resetCamera((gameState.cameras[i])
 
 proc init*() =
   discard
