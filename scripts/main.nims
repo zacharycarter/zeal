@@ -1,4 +1,4 @@
 import "dep.nims"
 
 proc entry*() =
-  newGame("assets/maps", "demo.zmap")
+  newGame("assets/maps", "foo.zmap")

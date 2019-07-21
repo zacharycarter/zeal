@@ -58,21 +58,52 @@ proc modelMatrixForChunk(map: Map, cp: ChunkPos, mtx: var array[16, float32]) =
     zOffset = cp.r * tilesPerChunkHeight * zCoordsPerTile
     chunkPos = [map.pos[0] + float32(xOffset), map.pos[1], map.pos[2] + float32(zOffset)]
   
-  # mtxTranslate(mtx, chunkPos[0], chunkPos[1], chunkPos[2])
-  mtxProj(mtx, 60.0'f32, 960.0'f32 / 540.0'f32, 0.1'f32, 100.0'f32, rendererCaps.homogeneousDepth)
+  mtxTranslate(mtx, chunkPos[0], chunkPos[1], chunkPos[2])
   
+proc aabbForChunk(map: Map, chunkPos: ChunkPos, outChunkAabb: var AABB) =
+  let
+    chunkXDim = tilesPerChunkWidth * xCoordsPerTile
+    chunkZDim = tilesPerChunkHeight * zCoordsPerTile
+    chunkMaxHeight = maxHeightLevel * yCoordsPerTile
+    xOffset = -(chunkPos.c * chunkXDim)
+    zOffset = (chunkPos.r * chunkZDim)
+  
+  outChunkAabb.xMax = map.pos[0] + float32(xOffset)
+  outChunkAabb.xMin = outChunkAabb.xMax - float32(chunkXDim)
+
+  outChunkAabb.zMin = map.pos[2] + float32(zOffset)
+  outChunkAabb.zMax = outChunkAabb.zMin + float32(chunkZDim)
+
+  outChunkAabb.yMin = 0.0'f32
+  outChunkAabb.yMax = float32(chunkMaxHeight)
+
+  assert(outChunkAabb.xMax >= outChunkAabb.xMin)
+  assert(outChunkAabb.yMax >= outChunkAabb.yMin)
+  assert(outChunkAabb.zMax >= outChunkAabb.zMin)
 
 proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
   var frustum: Frustum
   makeFrustum(cam, frustum)
 
-  # for r in 0 ..< map.height:
-  #   for c in 0 ..< map.width:
-  #     var chunkModel: Mat4
-  #     let chunk = map.chunks[map.width * r + c]
-  #     modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
-  var chunkModel: Mat4
-  draw(map.chunks[0].renderData, chunkModel)
+  for r in 0 ..< map.height:
+   for c in 0 ..< map.width:
+      var chunkAabb: AABB
+      aabbForChunk(map, ChunkPos(r: r, c: c), chunkAabb)
+
+      if not frustumAABBIntersectionExact(frustum, chunkAabb):
+        continue
+
+      var chunkModel: Mat4
+      let chunk = map.chunks[r * map.width + c]
+      modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
+      draw(chunk.renderData, chunkModel)
+
+proc centerAtOrigin*(map: var Map) =
+  let 
+    width = map.width * tilesPerChunkWidth * xCoordsPerTile
+    height = map.height * tilesPerChunkHeight * zCoordsPerTile
+  
+  map.pos = [(float32(width) / 2.0'f32), 0.0, -(float32(height) / 2.0)]
 
 proc parseTile(str: string, tile: var Tile) =
   if len(str) != 24:

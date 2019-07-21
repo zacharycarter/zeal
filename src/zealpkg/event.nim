@@ -74,14 +74,31 @@ proc handleEvent(event: Event) =
     if eventHandler.kind == hkEngine:
       eventHandler.handler.asProc(eventHandler.userArg, event.arg)
 
-  
+proc unregisterHandler(key: uint64, handlerDesc: HandlerDesc) =
+  if eventHandlers.hasKey(key):
+    let handlerIdx = eventHandlers[key].find(handlerDesc)
+    if handlerIdx != -1:
+      eventHandlers[key].del(handlerIdx)
 
-proc globalRegister*(eventKind: EventKind, handler: Handler, userArg: pointer, simMask: int32) =
+proc globalUnregister*(eventKind: EventKind, handlerProc: HandlerProc) =
+  unregisterHandler(
+    key(globalId, eventKind),
+    HandlerDesc(
+      kind: hkEngine,
+      handler: Handler(
+        asProc: handlerProc
+      )
+    )
+  )
+
+proc globalRegister*(eventKind: EventKind, handlerProc: HandlerProc, userArg: pointer, simMask: int32) =
   registerHandler(
     key(globalId, eventKind), 
     HandlerDesc(
       kind: hkEngine,
-      handler: handler,
+      handler: Handler(
+        asProc: handlerProc
+      ),
       userArg: userArg,
       simMask: simMask
     )
@@ -101,5 +118,7 @@ proc init*() =
   eventQueue = initDeque[Event]()
 
 proc serviceQueue*() =
-  for event in eventQueue:
-    handleEvent(event)
+  while len(eventQueue) > 0:
+    handleEvent(eventQueue.popFirst())
+
+  handleEvent(Event(kind: ekUpdateEnd, arg: nil, source: esEngine, receiverId: globalId))

@@ -12,6 +12,7 @@ const
   xCoordsPerTile* = 8
   yCoordsPerTile* = 4
   zCoordsPerTile* = 8
+  maxHeightLevel* = 9
 
 # Each top face is made up of 8 triangles, in the following configuration:
 #   +------+------+
@@ -144,24 +145,24 @@ template mag*(x, y: untyped): untyped =
   sqrt(pow(float32(x), 2) + pow(float32(y), 2))
 
 proc isRampTile(tk: TileKind): bool =
-  result = tk == tkRampSN or 
-           tk == tkRampNS or
-           tk == tkRampEW or
-           tk == tkRampWE
+  result = (tk == tkRampSN) or 
+           (tk == tkRampNS) or
+           (tk == tkRampEW) or
+           (tk == tkRampWE)
 
 proc isCornerConvexTile(tk: TileKind): bool =
-  result = tk == tkCornerConvexSW or 
-           tk == tkCornerConvexSE or
-           tk == tkCornerConvexNW or
-           tk == tkCornerConvexNE
+  result = (tk == tkCornerConvexSW) or 
+           (tk == tkCornerConvexSE) or
+           (tk == tkCornerConvexNW) or
+           (tk == tkCornerConvexNE)
 
 proc tileNWHeight(tile: Tile): int =
-  let topNWRaised = tile.kind == tkRampSN or
-                    tile.kind == tkRampEW or
-                    tile.kind == tkCornerConvexSW or
-                    tile.kind == tkCornerConvexSE or
-                    tile.kind == tkCornerConcaveSE or
-                    tile.kind == tkCornerConvexNE
+  let topNWRaised = (tile.kind == tkRampSN) or
+                    (tile.kind == tkRampEW) or
+                    (tile.kind == tkCornerConvexSW) or
+                    (tile.kind == tkCornerConvexSE) or
+                    (tile.kind == tkCornerConcaveSE) or
+                    (tile.kind == tkCornerConvexNE)
   
   if topNWRaised:
     result = tile.baseHeight + tile.rampHeight
@@ -169,12 +170,12 @@ proc tileNWHeight(tile: Tile): int =
     result = tile.baseHeight
 
 proc tileNEHeight(tile: Tile): int =
-  let topNERaised = tile.kind == tkRampSN or
-                    tile.kind == tkRampWE or
-                    tile.kind == tkCornerConvexSW or
-                    tile.kind == tkCornerConcaveSW or
-                    tile.kind == tkCornerConvexSE or
-                    tile.kind == tkCornerConvexNW
+  let topNERaised = (tile.kind == tkRampSN) or
+                    (tile.kind == tkRampWE) or
+                    (tile.kind == tkCornerConvexSW) or
+                    (tile.kind == tkCornerConcaveSW) or
+                    (tile.kind == tkCornerConvexSE) or
+                    (tile.kind == tkCornerConvexNW)
   
   if topNERaised:
     result = tile.baseHeight + tile.rampHeight
@@ -182,12 +183,12 @@ proc tileNEHeight(tile: Tile): int =
     result = tile.baseHeight
 
 proc tileSWHeight(tile: Tile): int =
-  let topSWRaised = tile.kind == tkRampNS or
-                    tile.kind == tkRampEW or
-                    tile.kind == tkCornerConvexSE or
-                    tile.kind == tkCornerConvexNW or
-                    tile.kind == tkCornerConcaveNE or
-                    tile.kind == tkCornerConvexNE
+  let topSWRaised = (tile.kind == tkRampNS) or
+                    (tile.kind == tkRampEW) or
+                    (tile.kind == tkCornerConvexSE) or
+                    (tile.kind == tkCornerConvexNW) or
+                    (tile.kind == tkCornerConcaveNE) or
+                    (tile.kind == tkCornerConvexNE)
   
   if topSWRaised:
     result = tile.baseHeight + tile.rampHeight
@@ -195,12 +196,12 @@ proc tileSWHeight(tile: Tile): int =
     result = tile.baseHeight
 
 proc tileSEHeight(tile: Tile): int =
-  let topSERaised = tile.kind == tkRampNS or
-                    tile.kind == tkRampWE or
-                    tile.kind == tkCornerConvexSW or
-                    tile.kind == tkCornerConvexNE or
-                    tile.kind == tkCornerConcaveNW or
-                    tile.kind == tkCornerConvexNW
+  let topSERaised = (tile.kind == tkRampNS) or
+                    (tile.kind == tkRampWE) or
+                    (tile.kind == tkCornerConvexSW) or
+                    (tile.kind == tkCornerConvexNE) or
+                    (tile.kind == tkCornerConcaveNW) or
+                    (tile.kind == tkCornerConvexNW)
   
   if topSERaised:
     result = tile.baseHeight + tile.rampHeight
@@ -310,25 +311,26 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
     nw: Vertex(
       pos: [0.0'f32 - float32((c+1) * xCoordsPerTile), (-1.0 * yCoordsPerTile), 0.0 + float32(r * zCoordsPerTile)],
       uv: [0.0'f32, 1.0],
-      normal: [0.0'f32, -1.0, 0.0],
-      materialIdx: tile.topMatIdx
+      # normal: [0.0'f32, -1.0, 0.0],
+      # materialIdx: tile.topMatIdx
     ),
     ne: Vertex(
       pos: [0.0'f32 - float32(c * xCoordsPerTile), (-1.0 * yCoordsPerTile), 0.0 + float32(r * zCoordsPerTile)],
       uv: [1.0'f32, 1.0],
-      normal: [0.0'f32, -1.0, 0.0],
-      materialIdx: tile.topMatIdx
+      # normal: [0.0'f32, -1.0, 0.0],
+      # materialIdx: tile.topMatIdx
     ),
     se: Vertex(
       pos: [0.0'f32 - float32(c * xCoordsPerTile), (-1.0 * yCoordsPerTile), 0.0 + float32((r+1) * zCoordsPerTile)],
       uv: [1.0'f32, 0.0],
-      normal: [0.0'f32, -1.0, 0.0],
-      materialIdx: tile.topMatIdx
+      # normal: [0.0'f32, -1.0, 0.0],
+      # materialIdx: tile.topMatIdx
     ),
     sw: Vertex(
       pos: [0.0'f32- float32((c+1) * xCoordsPerTile), (-1.0 * yCoordsPerTile), 0.0 + float32((r+1) * zCoordsPerTile)],
-      normal: [0.0'f32, -1.0, 0.0],
-      materialIdx: tile.topMatIdx
+      uv: [0.0'f32, 0.0'f32]
+      # normal: [0.0'f32, -1.0, 0.0],
+      # materialIdx: tile.topMatIdx
     )
   )
 
@@ -337,22 +339,22 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
     nw: Vertex(
       pos: [0.0'f32 - float32(c * xCoordsPerTile), float32(tileNWHeight(tile) * yCoordsPerTile), 0.0 + float32(r * zCoordsPerTile)],
       uv: [0.0'f32, 1.0],
-      materialIdx: tile.topMatIdx
+      # materialIdx: tile.topMatIdx
     ),
     ne: Vertex(
       pos: [0.0'f32 - float32((c+1) * xCoordsPerTile), float32(tileNEHeight(tile) * yCoordsPerTile), 0.0 + float32(r * zCoordsPerTile)],
       uv: [1.0'f32, 1.0],
-      materialIdx: tile.topMatIdx
+      # materialIdx: tile.topMatIdx
     ),
     se: Vertex(
       pos: [0.0'f32 - float32((c+1) * xCoordsPerTile), float32(tileSEHeight(tile) * yCoordsPerTile), 0.0 + float32((r+1) * zCoordsPerTile)],
       uv: [1.0'f32, 0.0],
-      materialIdx: tile.topMatIdx
+      # materialIdx: tile.topMatIdx
     ),
     sw: Vertex(
       pos: [0.0'f32 - float32(c * xCoordsPerTile), float32(tileSWHeight(tile) * yCoordsPerTile), 0.0f + float32((r+1) * zCoordsPerTile)],
       uv: [0.0'f32, 0.0],
-      materialIdx: tile.topMatIdx
+      # materialIdx: tile.topMatIdx
     )
   )
 
@@ -368,26 +370,26 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
     nw: Vertex(
       pos: top.ne.pos,
       uv: [0.0'f32, vCoord(xCoordsPerTile, top.ne.pos[1])],
-      normal: [0.0'f32, 0.0, -1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, -1.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     ne: Vertex(
       pos: top.nw.pos,
       uv: [1.0'f32, vCoord(xCoordsPerTile, top.nw.pos[1])],
-      normal: [0.0'f32, 0.0, -1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, -1.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     se: Vertex(
       pos: bot.ne.pos,
       uv: [1.0'f32, 0.0],
-      normal: [0.0'f32, 0.0, -1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, -1.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     sw: Vertex(
       pos: bot.nw.pos,
       uv: [0.0'f32, 0.0],
-      normal: [0.0'f32, 0.0, -1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, -1.0],
+      # materialIdx: tile.sidesMatIdx
     )
   )
 
@@ -395,26 +397,26 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
     nw: Vertex(
       pos: top.sw.pos,
       uv: [0.0'f32, vCoord(xCoordsPerTile, top.sw.pos[1])],
-      normal: [0.0'f32, 0.0, 1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, 1.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     ne: Vertex(
       pos: top.se.pos,
       uv: [1.0'f32, vCoord(xCoordsPerTile, top.se.pos[1])],
-      normal: [0.0'f32, 0.0, 1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, 1.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     se: Vertex(
       pos: bot.sw.pos,
       uv: [1.0'f32, 0.0],
-      normal: [0.0'f32, 0.0, 1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, 1.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     sw: Vertex(
       pos: bot.se.pos,
       uv: [0.0'f32, 0.0],
-      normal: [0.0'f32, 0.0, 1.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [0.0'f32, 0.0, 1.0],
+      # materialIdx: tile.sidesMatIdx
     )
   )
   
@@ -422,26 +424,26 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
     nw: Vertex(
       pos: top.nw.pos,
       uv: [0.0'f32, vCoord(xCoordsPerTile, top.nw.pos[1])],
-      normal: [1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     ne: Vertex(
       pos: top.sw.pos,
       uv: [1.0'f32, vCoord(xCoordsPerTile, top.sw.pos[1])],
-      normal: [1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     se: Vertex(
       pos: bot.se.pos,
       uv: [1.0'f32, 0.0],
-      normal: [1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     sw: Vertex(
       pos: bot.ne.pos,
       uv: [0.0'f32, 0.0],
-      normal: [1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     )
   )
 
@@ -449,30 +451,30 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
     nw: Vertex(
       pos: top.se.pos,
       uv: [0.0'f32, vCoord(xCoordsPerTile, top.se.pos[1])],
-      normal: [-1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [-1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     ne: Vertex(
       pos: top.ne.pos,
       uv: [1.0'f32, vCoord(xCoordsPerTile, top.ne.pos[1])],
-      normal: [-1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [-1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     se: Vertex(
       pos: bot.nw.pos,
       uv: [1.0'f32, 0.0],
-      normal: [-1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [-1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     ),
     sw: Vertex(
       pos: bot.sw.pos,
       uv: [0.0'f32, 0.0],
-      normal: [-1.0'f32, 0.0, 0.0],
-      materialIdx: tile.sidesMatIdx
+      # normal: [-1.0'f32, 0.0, 0.0],
+      # materialIdx: tile.sidesMatIdx
     )
   )
 
-  let faces = [bot, front, left, right]
+  let faces = [bot, front, back, left, right]
   for i in 0 ..< len(faces):
     var curr = faces[i]
     # First triangle
@@ -524,15 +526,15 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
     centerVertTri0 = Vertex(
       pos: centerVertPos,
       uv: [0.5'f32, 0.5],
-      normal: topTriNormals[0],
-      materialIdx: tri0Idx
+      # normal: topTriNormals[0],
+      # materialIdx: tri0Idx
     )
 
     centerVertTri1 = Vertex(
       pos: centerVertPos,
       uv: [0.5'f32, 0.5],
-      normal: topTriNormals[1],
-      materialIdx: tri1Idx
+      # normal: topTriNormals[1],
+      # materialIdx: tri1Idx
     )
 
     northVert = Vertex(
@@ -542,8 +544,8 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
         (top.ne.pos[2] + top.nw.pos[2])/2.0
       ],
       uv: [0.5'f32, 1.0],
-      normal: topTriNormals[1],
-      materialIdx: tri1Idx
+      # normal: topTriNormals[1],
+      # materialIdx: tri1Idx
     )
 
     southVert = Vertex(
@@ -553,8 +555,8 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
         (top.se.pos[2] + top.sw.pos[2])/2.0
       ],
       uv: [0.5'f32, 0.0],
-      normal: topTriNormals[0],
-      materialIdx: tri0Idx
+      # normal: topTriNormals[0],
+      # materialIdx: tri0Idx
     )
 
     westVert = Vertex(
@@ -564,8 +566,8 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
         (top.sw.pos[2] + top.nw.pos[2])/2.0
       ],
       uv: [0.0'f32, 0.5],
-      normal: if topTriLeftAligned: topTriNormals[1] else: topTriNormals[0],
-      materialIdx: if topTriLeftAligned: tri1Idx else: tri0Idx
+      # normal: if topTriLeftAligned: topTriNormals[1] else: topTriNormals[0],
+      # materialIdx: if topTriLeftAligned: tri1Idx else: tri0Idx
     )
 
     eastVert = Vertex(
@@ -575,89 +577,89 @@ proc getTileVertices*(tile: Tile, outVert: ptr Vertex, r, c: int) =
         (top.se.pos[2] + top.ne.pos[2])/2.0
       ],
       uv: [1.0'f32, 0.5],
-      normal: if topTriLeftAligned: topTriNormals[0] else: topTriNormals[1],
-      materialIdx: if topTriLeftAligned: tri0Idx else: tri1Idx
+      # normal: if topTriLeftAligned: topTriNormals[0] else: topTriNormals[1],
+      # materialIdx: if topTriLeftAligned: tri0Idx else: tri1Idx
     )
 
   assert(sizeof(TopFaceVbuff) == vertsPerTopFace * sizeof(Vertex))
-  var tfvb = cast[ptr TopFaceVbuff](outVert + 5 * vertsPerSideFace)
-  tfvb.vertTris.se0 = top.se
-  tfvb.vertTris.s0 = southVert
-  tfvb.vertTris.center0 = centerVertTri0
-  tfvb.vertTris.center1 = centerVertTri0
-  tfvb.vertTris.s1 = southVert
-  tfvb.vertTris.sw0 = top.sw
-  tfvb.vertTris.sw1 = top.sw
-  tfvb.vertTris.w0 = westVert
-  tfvb.vertTris.center2 = if topTriLeftAligned: centerVertTri1 else: centerVertTri0
-  tfvb.vertTris.center3 = if topTriLeftAligned: centerVertTri1 else: centerVertTri0
-  tfvb.vertTris.w1 = westVert
-  tfvb.vertTris.nw0 = top.nw
-  tfvb.vertTris.nw1 = top.nw
-  tfvb.vertTris.n0 = northVert
-  tfvb.vertTris.center4 = centerVertTri1
-  tfvb.vertTris.center5 = centerVertTri1
-  tfvb.vertTris.n1 = northVert
-  tfvb.vertTris.ne0 = top.ne
-  tfvb.vertTris.ne1 = top.ne
-  tfvb.vertTris.e0 = eastVert
-  tfvb.vertTris.center6 = if topTriLeftAligned: centerVertTri0 else: centerVertTri1
-  tfvb.vertTris.center7 = if topTriLeftAligned: centerVertTri0 else: centerVertTri1
-  tfvb.vertTris.e1 = eastVert
-  tfvb.vertTris.se1 = top.se
+  # var tfvb = cast[ptr TopFaceVbuff](outVert + 5 * vertsPerSideFace)
+  # tfvb.vertTris.se0 = top.se
+  # tfvb.vertTris.s0 = southVert
+  # tfvb.vertTris.center0 = centerVertTri0
+  # tfvb.vertTris.center1 = centerVertTri0
+  # tfvb.vertTris.s1 = southVert
+  # tfvb.vertTris.sw0 = top.sw
+  # tfvb.vertTris.sw1 = top.sw
+  # tfvb.vertTris.w0 = westVert
+  # tfvb.vertTris.center2 = if topTriLeftAligned: centerVertTri1 else: centerVertTri0
+  # tfvb.vertTris.center3 = if topTriLeftAligned: centerVertTri1 else: centerVertTri0
+  # tfvb.vertTris.w1 = westVert
+  # tfvb.vertTris.nw0 = top.nw
+  # tfvb.vertTris.nw1 = top.nw
+  # tfvb.vertTris.n0 = northVert
+  # tfvb.vertTris.center4 = centerVertTri1
+  # tfvb.vertTris.center5 = centerVertTri1
+  # tfvb.vertTris.n1 = northVert
+  # tfvb.vertTris.ne0 = top.ne
+  # tfvb.vertTris.ne1 = top.ne
+  # tfvb.vertTris.e0 = eastVert
+  # tfvb.vertTris.center6 = if topTriLeftAligned: centerVertTri0 else: centerVertTri1
+  # tfvb.vertTris.center7 = if topTriLeftAligned: centerVertTri0 else: centerVertTri1
+  # tfvb.vertTris.e1 = eastVert
+  # tfvb.vertTris.se1 = top.se
   
-  tfvb.vertTris.center0.pos[2] -= 0.005
-  tfvb.vertTris.center1.pos[2] -= 0.005
-  tfvb.vertTris.center2.pos[0] -= 0.005
-  tfvb.vertTris.center3.pos[0] -= 0.005
-  tfvb.vertTris.center4.pos[2] += 0.005
-  tfvb.vertTris.center5.pos[2] += 0.005
-  tfvb.vertTris.center6.pos[2] += 0.005
-  tfvb.vertTris.center7.pos[2] += 0.005
+  # tfvb.vertTris.center0.pos[2] -= 0.005
+  # tfvb.vertTris.center1.pos[2] -= 0.005
+  # tfvb.vertTris.center2.pos[0] -= 0.005
+  # tfvb.vertTris.center3.pos[0] -= 0.005
+  # tfvb.vertTris.center4.pos[2] += 0.005
+  # tfvb.vertTris.center5.pos[2] += 0.005
+  # tfvb.vertTris.center6.pos[2] += 0.005
+  # tfvb.vertTris.center7.pos[2] += 0.005
 
-  if topTriLeftAligned:
-    tfvb.vertTris.se0.material_idx = tri0Idx
-    tfvb.vertTris.sw0.material_idx = tri0Idx
-    tfvb.vertTris.sw1.material_idx = tri1Idx
-    tfvb.vertTris.nw0.material_idx = tri1Idx
-    tfvb.vertTris.nw1.material_idx = tri1Idx
-    tfvb.vertTris.ne0.material_idx = tri1Idx
-    tfvb.vertTris.ne1.material_idx = tri0Idx
-    tfvb.vertTris.se1.material_idx = tri0Idx
+  # if topTriLeftAligned:
+  #   tfvb.vertTris.se0.material_idx = tri0Idx
+  #   tfvb.vertTris.sw0.material_idx = tri0Idx
+  #   tfvb.vertTris.sw1.material_idx = tri1Idx
+  #   tfvb.vertTris.nw0.material_idx = tri1Idx
+  #   tfvb.vertTris.nw1.material_idx = tri1Idx
+  #   tfvb.vertTris.ne0.material_idx = tri1Idx
+  #   tfvb.vertTris.ne1.material_idx = tri0Idx
+  #   tfvb.vertTris.se1.material_idx = tri0Idx
 
-    tfvb.vertTris.se0.normal = topTriNormals[0]
-    tfvb.vertTris.sw0.normal = topTriNormals[0]
-    tfvb.vertTris.sw1.normal = topTriNormals[1]
-    tfvb.vertTris.nw0.normal = topTriNormals[1]
-    tfvb.vertTris.nw1.normal = topTriNormals[1]
-    tfvb.vertTris.ne0.normal = topTriNormals[1]
-    tfvb.vertTris.ne1.normal = topTriNormals[0]
-    tfvb.vertTris.se1.normal = topTriNormals[0]
-  else:
-    tfvb.vertTris.se0.material_idx = tri0Idx
-    tfvb.vertTris.sw0.material_idx = tri0Idx
-    tfvb.vertTris.sw1.material_idx = tri0Idx
-    tfvb.vertTris.nw0.material_idx = tri0Idx
-    tfvb.vertTris.nw1.material_idx = tri1Idx
-    tfvb.vertTris.ne0.material_idx = tri1Idx
-    tfvb.vertTris.ne1.material_idx = tri1Idx
-    tfvb.vertTris.se1.material_idx = tri1Idx
+  #   tfvb.vertTris.se0.normal = topTriNormals[0]
+  #   tfvb.vertTris.sw0.normal = topTriNormals[0]
+  #   tfvb.vertTris.sw1.normal = topTriNormals[1]
+  #   tfvb.vertTris.nw0.normal = topTriNormals[1]
+  #   tfvb.vertTris.nw1.normal = topTriNormals[1]
+  #   tfvb.vertTris.ne0.normal = topTriNormals[1]
+  #   tfvb.vertTris.ne1.normal = topTriNormals[0]
+  #   tfvb.vertTris.se1.normal = topTriNormals[0]
+  # else:
+  #   tfvb.vertTris.se0.material_idx = tri0Idx
+  #   tfvb.vertTris.sw0.material_idx = tri0Idx
+  #   tfvb.vertTris.sw1.material_idx = tri0Idx
+  #   tfvb.vertTris.nw0.material_idx = tri0Idx
+  #   tfvb.vertTris.nw1.material_idx = tri1Idx
+  #   tfvb.vertTris.ne0.material_idx = tri1Idx
+  #   tfvb.vertTris.ne1.material_idx = tri1Idx
+  #   tfvb.vertTris.se1.material_idx = tri1Idx
 
-    tfvb.vertTris.se0.normal = topTriNormals[0]
-    tfvb.vertTris.sw0.normal = topTriNormals[0]
-    tfvb.vertTris.sw1.normal = topTriNormals[0]
-    tfvb.vertTris.nw0.normal = topTriNormals[0]
-    tfvb.vertTris.nw1.normal = topTriNormals[1]
-    tfvb.vertTris.ne0.normal = topTriNormals[1]
-    tfvb.vertTris.ne1.normal = topTriNormals[1]
-    tfvb.vertTris.se1.normal = topTriNormals[1]
+  #   tfvb.vertTris.se0.normal = topTriNormals[0]
+  #   tfvb.vertTris.sw0.normal = topTriNormals[0]
+  #   tfvb.vertTris.sw1.normal = topTriNormals[0]
+  #   tfvb.vertTris.nw0.normal = topTriNormals[0]
+  #   tfvb.vertTris.nw1.normal = topTriNormals[1]
+  #   tfvb.vertTris.ne0.normal = topTriNormals[1]
+  #   tfvb.vertTris.ne1.normal = topTriNormals[1]
+  #   tfvb.vertTris.se1.normal = topTriNormals[1]
 
-  var currProvoking: ptr Vertex = outVert
-  while currProvoking < outVert + (5 * vertsPerSideFace):
-    currProvoking.blendMode = bmNoBlend
-    currProvoking += 3
+  # var currProvoking: ptr Vertex = outVert
+  # while currProvoking < outVert + (5 * vertsPerSideFace):
+  #   currProvoking.blendMode = bmNoBlend
+  #   currProvoking += 3
 
-  currProvoking = outVert + (5 * vertsPerSideFace)
-  while currProvoking < outVert + vertsPerTile:
-    currProvoking.blendMode = tile.blendMode
-    currProvoking += 3
+  # currProvoking = outVert + (5 * vertsPerSideFace)
+  # while currProvoking < outVert + vertsPerTile:
+  #   currProvoking.blendMode = tile.blendMode
+  #   currProvoking += 3

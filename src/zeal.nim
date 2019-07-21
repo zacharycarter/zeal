@@ -1,5 +1,5 @@
 import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl
-import zealpkg / [event, game, render, script, enims, apiImpl]
+import zealpkg / [event, game, simulation, render, script, enims, apiImpl]
 
 const
   SDL_MAJOR_VERSION* = 2
@@ -101,7 +101,7 @@ proc init(): bool =
   render.init(paramStr(1))
   event.init()
 
-  event.globalRegister(EventKind(sdl.QuitEvent), Handler(asProc: onUserQuit), nil, int32(ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
+  event.globalRegister(EventKind(sdl.QuitEvent), onUserQuit, nil, int32(ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
   
   game.init()
 
@@ -127,6 +127,7 @@ proc run*() =
     while not quit:
       processSDLEvents()
       event.serviceQueue()
+      # game.update()
       render()
   except:
     echo getCurrentExceptionMsg()

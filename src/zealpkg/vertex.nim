@@ -8,12 +8,12 @@ type
   Vertex* = object
     pos*: Vec3
     uv*: Vec2
-    normal*: Vec3
-    materialIdx*: int16
-    jointIndices*: array[6, int]
-    weights*: array[6, float32]
-    blendMode*: BlendMode
-    adjacentMatIndices*: array[4, int16]
+    # normal*: Vec3
+    # materialIdx*: int16
+    # jointIndices*: array[6, int]
+    # weights*: array[6, float32]
+    # blendMode*: BlendMode
+    # adjacentMatIndices*: array[4, int16]
   
   ColoredVert* = object
     pos*: Vec3

@@ -1,4 +1,4 @@
-import asset, camera, entity, map, render, collision, fpmath, tables
+import bgfxdotnim, asset, camera, camera_controls, entity, map, render, collision, fpmath, tables, simulation
 
 const 
   numCameras = 2
@@ -10,11 +10,6 @@ type
   CameraMode = enum
     cmRTS,
     cmFPS
-
-  SimState* {.size: sizeof(int32).} = enum
-    ssRunning = (1 shl 0),
-    ssPausedFull = (1 shl 1),
-    ssPausedUiRunning = (1 shl 2)
   
   GameState = object
     simState: SimState
@@ -52,10 +47,9 @@ proc activateCamera(camIdx: int, mode: CameraMode) =
   
   gameState.activeCamIdx = camIdx
 
-  # TODO: Camera Controls
-  # case mode
-  # of cmRTS: cameraControlRTS(gamestate.cameras[camIdx])
-  # of cmFPS: cameraControlFPS(gamestate.cameras[camIdx])
+  case mode
+  of cmRTS: rtsControls(gamestate.cameras[camIdx])
+  of cmFPS: discard # fpsControls(gamestate.cameras[camIdx])
 
 
 proc reset(camera: var Camera) =
@@ -69,14 +63,26 @@ proc initCameras() =
     reset(gameState.cameras[i])
 
 proc reset() =
+  for i in 0 ..< numCameras:
+    reset(gameState.cameras[i])
+
   activateCamera(0, cmRTS)
 
 proc render*() =
   renderVisibleMap(gameState.map, gameState.cameras[gamestate.activeCamIdx], rpRegular)
+  discard bgfx_frame(false)
+
+proc initMap() =
+  centerAtOrigin(gameState.map)
 
 proc init*() =
-  discard
+  initCameras()
+  reset()
 
 proc newGame*(mapDir: string, mapName: string) =
+  reset()
+
   echo "creating new game - loading map..."
   gameState.map = loadMap(mapDir, mapName)
+
+  initMap()
