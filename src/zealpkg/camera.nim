@@ -60,7 +60,7 @@ proc setPosition*(camera: var Camera, position: Vec3) =
   assert(not camera.bounded or posInBounds(camera))
 
 proc makeFrustum*(camera: Camera, frustum: var Frustum) =
-  let aspectRatio = 1920.0'f32 / 1080.0'f32
+  let aspectRatio = 1280.0'f32 / 720.0'f32
 
   makeFrustum(camera.pos, camera.up, camera.front, aspectRatio, camFovRad, camZNearDist, 1000, frustum)
 
@@ -71,7 +71,6 @@ proc tickFinishPerspective*(cam: var Camera) =
   
   vec3Add(target, cam.pos, cam.front)
   mtxLookAt(view, cam.pos, target, cam.up)
-  echo view
   setViewTransform(view)
 
   cam.prevFrameTs = sdl.getTicks()

@@ -78,10 +78,11 @@ proc init*(basePath: string) =
   viewPosUniform = bgfx_create_uniform("view_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
   
   var ambientLightColor = [1.0'f32, 1.0, 1.0, 0.0]
+  var emitLightPos = [1664.0'f32, 1024.0, 384.0]
 
   bgfx_set_uniform(ambientColorU, addr ambientLightColor[0], 1)
   bgfx_set_uniform(lightColorU, addr ambientLightColor[0], 1)
-  bgfx_set_uniform(lightPosU, addr ambientLightColor[0], 1)
+  bgfx_set_uniform(lightPosU, addr emitLightPos[0], 1)
 
 proc destroy*() =
   for shaderName, programHandle in programHandles:

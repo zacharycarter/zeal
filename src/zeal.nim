@@ -79,14 +79,14 @@ proc init(): bool =
   if sdl.init(sdl.INIT_VIDEO or sdl.INIT_TIMER) < sdl.SdlSuccess:
     stderr.writeLine("Failed to initialize SDL: $1\n" % $sdl.getError())
     return false
-  
+
   window = sdl.createWindow(
     "Zeal",
     sdl.SDL_WINDOWPOS_UNDEFINED,
     sdl.SDL_WINDOWPOS_UNDEFINED,
-    1920,
-    1080,
-    SDL_WINDOW_SHOWN
+    1280,
+    720,
+    SDL_WINDOW_SHOWN or SDL_WINDOW_RESIZABLE
   )
 
   linkSDL2BGFX()
@@ -134,6 +134,8 @@ proc run*() =
     echo getCurrentExceptionMsg()
   finally:
     shutdown()
+  
+  quit(ret)
 
 when isMainModule:
   run()

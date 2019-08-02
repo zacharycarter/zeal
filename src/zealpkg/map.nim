@@ -124,8 +124,8 @@ proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
   m.height = header.numRows
   m.pos = [0.0'f32, 0.0, 0.0]
 
-  m.minimapVres = [1920, 1080]
-  m.minimapCenterPos = [1920, 1080 - 192]
+  m.minimapVres = [1280, 720]
+  m.minimapCenterPos = [1280, 720 - 192]
   m.minimapSz = 256
 
   var texnames = newSeq[string](header.numMaterials)

@@ -24,7 +24,7 @@ SAMPLER2DARRAY(s_texColor, 0);
 
 vec4 texture_val(int mat_idx, vec2 uv)
 {
-    return texture2DArray(s_texColor, vec3(uv, 0.0));
+    return texture2DArray(s_texColor, vec3(uv, 3.0));
 }
 
 vec4 mixed_texture_val(int adjacency_mats, vec2 uv)
@@ -227,6 +227,5 @@ void main()
     float spec = pow(max(dot(view_dir, reflect_dir), 0.0), SPECULAR_SHININESS);
     vec3 specular = SPECULAR_STRENGTH * light_color * (spec * TERRAIN_SPECULAR);
 
-    // gl_FragColor = vec4( (ambient + diffuse) * tex_color.xyz, 1.0);
-    gl_FragColor = vec4(tex_color.xyz, 1.0);
+    gl_FragColor = vec4( (ambient + diffuse) * tex_color.xyz, 1.0);
 }

@@ -23,11 +23,11 @@ var
 
 proc setViewTransform*(view: var Mat4) =
   var proj: Mat4
-  mtxProj(proj, 45.0'f32, 1920.0 / 1080.0, 0.1, 1000.0, rendererCaps.homogeneousDepth)
+  mtxProj(proj, 45.0'f32, 1280.0 / 720.0, 0.1, 1000.0, rendererCaps.homogeneousDepth)
   bgfx_set_view_transform(0, addr view[0], addr proj[0])
 
 proc draw*(renderData: RenderData, model: var Mat4) =
-  bgfx_set_view_rect(0, 0, 0, 1920'u16, 1080'u16)
+  bgfx_set_view_rect(0, 0, 0, 1280'u16, 720'u16)
 
   bgfx_touch(0)
   
