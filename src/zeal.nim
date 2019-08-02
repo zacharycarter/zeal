@@ -84,8 +84,8 @@ proc init(): bool =
     "Zeal",
     sdl.SDL_WINDOWPOS_UNDEFINED,
     sdl.SDL_WINDOWPOS_UNDEFINED,
-    960,
-    540,
+    1920,
+    1080,
     SDL_WINDOW_SHOWN
   )
 
@@ -120,10 +120,11 @@ proc run*() =
     ret = QUIT_FAILURE
     quit(ret)
   
+  #try:
+    #entryPointScript = compileScript("main.nims")
+    #WentryPointScript.call("entry")
   try:
-    entryPointScript = compileScript("main.nims")
-    entryPointScript.call("entry")
-
+    newGame("assets/maps", "foo.zmap")
     while not quit:
       processSDLEvents()
       event.serviceQueue()

@@ -1,4 +1,4 @@
-import math, options, strutils, map, streams, strscans
+import math, options, strutils, tile, map, streams, strscans
 
 proc parseMapHeader(stream: FileStream, mapHeader: var MapHeader) =
   var line: string

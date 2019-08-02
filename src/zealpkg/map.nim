@@ -1,53 +1,10 @@
 import camera, collision, fpmath, streams, strutils, terrain, bgfxdotnim, material, mesh, render, render_asset_load, tile, vertex
 
-type
-  MapHeader* = object
-    version*: float
-    numMaterials*: int
-    numRows*: int
-    numCols*: int
+template `+`*[T](p: ptr T, off: int): ptr T =
+  cast[ptr type(p[])](cast[ByteAddress](p) +% off * sizeof(p[]))
 
-  Map* = object
-    # ------------------------------------------------------------------------
-    # Map dimensions in numbers of chunks.
-    # ------------------------------------------------------------------------
-    #
-    width*, height*: int
-    # ------------------------------------------------------------------------
-    # World-space location of the top left corner of the map.
-    # ------------------------------------------------------------------------
-    #
-    pos*: Vec3
-    # ------------------------------------------------------------------------
-    # Virtual resolution used to draw the minimap. Other parameters
-    # assume that this is the screen resolution. The minimap is then scaled as
-    # necessary for the current window resolution at the rendering stage.
-    # ------------------------------------------------------------------------
-    #
-    minimapVres*: array[2, int]
-    # ------------------------------------------------------------------------
-    # Minimap center location, in virtual screen coordinates.
-    # ------------------------------------------------------------------------
-    #
-    minimapCenterPos*: array[2, int]
-    # ------------------------------------------------------------------------
-    # Minimap side length, in virtual screen coordinates.
-    # ------------------------------------------------------------------------
-    #
-    minimapSz*: int
-    # ------------------------------------------------------------------------
-    # Navigation private data for the map.
-    # ------------------------------------------------------------------------
-    #
-    navPrivate*: pointer
-    # ------------------------------------------------------------------------
-    # The map chunks stored in row-major order. In total, there must be
-    # (width * height) number of chunks.
-    # ------------------------------------------------------------------------
-    #
-    chunks*: seq[Chunk]
-  
-  MapParsingError* = object of Exception
+template `+=`*[T](p: ptr T, off: int) =
+  p = p + off
 
 proc a2i(a: char): int =
   result = int(a) - int('0')
@@ -105,32 +62,48 @@ proc centerAtOrigin*(map: var Map) =
   
   map.pos = [(float32(width) / 2.0'f32), 0.0, -(float32(height) / 2.0)]
 
-proc parseTile(str: string, tile: var Tile) =
+proc patchAdjacencyInfo(map: var Map) =
+  for r in 0 ..< map.height:
+    for c in 0 ..< map.width:
+      for tileR in 0 ..< tilesPerChunkHeight:
+        for tileC in 0 ..< tilesPerChunkHeight:
+          let 
+            desc = TileDesc(chunkR: r, chunkC: c, tileR: tileR, tileC: tileC)
+            tile = map.chunks[r * map.width + c].tiles[tileR * tilesPerChunkWidth + tileC]
+          
+          patchTileVertsBlend(map.chunks[r * map.width + c].renderData, map, desc)
+          # if tile.blendNormals:
+            # patchTileVertsSmooth(chunkRenderData, map, desc)
+
+
+proc parseTile(str: string, tile: ptr Tile) =
   if len(str) != 24:
     raise newException(MapParsingError, "failed parsing map tile")
   
-  tile.kind         = TileKind(parseHexInt($str[0]))
-  tile.baseHeight   = (if str[1] == '-': -1 else: 1) * (10 * a2i(str[2]) + a2i(str[3]))
-  tile.rampHeight   = (10 * a2i(str[4]) + a2i(str[5]))
-  tile.topMatIdx    = int16(100 * a2i(str[6]) + 10 * a2i(str[7 ]) + a2i(str[8 ]))
-  tile.sidesMatIdx  = int16(100 * a2i(str[9]) + 10 * a2i(str[10]) + a2i(str[11]))
-  tile.pathable     = bool(a2i(str[12]))
-  tile.blendMode    = BlendMode(a2i(str[13]))
-  tile.blendNormals = bool(a2i(str[14]))
+  tile[].kind         = TileKind(parseHexInt($str[0]))
+  tile[].baseHeight   = (if str[1] == '-': -1 else: 1) * (10 * a2i(str[2]) + a2i(str[3]))
+  tile[].rampHeight   = (10 * a2i(str[4]) + a2i(str[5]))
+  tile[].topMatIdx    = int16((100 * a2i(str[6]) + 10 * a2i(str[7 ]) + a2i(str[8 ])))
+  tile[].sidesMatIdx  = int16((100 * a2i(str[9]) + 10 * a2i(str[10]) + a2i(str[11])))
+  tile[].pathable     = bool(a2i(str[12]))
+  tile[].blendMode    = BlendMode(a2i(str[13]))
+  tile[].blendNormals = bool(a2i(str[14]))
 
-proc readRow(stream: FileStream, tile: var Tile, tilesInRow: var int) =
+proc readRow(stream: FileStream, tile: ptr Tile, tilesInRow: var int) =
   var line: string
   assert stream.readLine(line)
+
+  tilesInRow = 0
   let splits = line.splitWhitespace()
   for split in splits:
-    parseTile(split, tile)
+    parseTile(split, tile + tilesInRow)
     inc(tilesInRow)
 
-proc readChunk(stream: FileStream, chunk: var Chunk) =
+proc readChunk(stream: FileStream, chunk: ptr Chunk) =
   var tilesRead = 0
   while tilesRead < tilesPerChunkWidth * tilesPerChunkHeight:
     var tilesInRow= 0
-    readRow(stream, chunk.tiles[tilesRead], tilesInRow)
+    readRow(stream, addr(chunk[].tiles[0]) + tilesRead, tilesInRow)
     tilesRead += tilesInRow
 
 
@@ -146,13 +119,14 @@ proc readMaterial(stream: FileStream, texName: var string) =
 
 
 proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
-  result.width = header.numCols
-  result.height = header.numRows
-  result.pos = [0.0'f32, 0.0, 0.0]
+  var m: Map
+  m.width = header.numCols
+  m.height = header.numRows
+  m.pos = [0.0'f32, 0.0, 0.0]
 
-  result.minimapVres = [1920, 1080]
-  result.minimapCenterPos = [192, 1080 - 192]
-  result.minimapSz = 256
+  m.minimapVres = [1920, 1080]
+  m.minimapCenterPos = [1920, 1080 - 192]
+  m.minimapSz = 256
 
   var texnames = newSeq[string](header.numMaterials)
   
@@ -162,7 +136,15 @@ proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
   initMapTextures(texnames)
 
   let numChunks = header.numRows * header.numCols
-  result.chunks = newSeq[Chunk](numChunks)
+  m.chunks = newSeq[Chunk](numChunks)
   for i in 0 ..< numChunks:
-    readChunk(stream, result.chunks[i])
-    initRenderDataFromTiles(result.chunks[i].tiles, tilesPerChunkWidth, tilesPerChunkHeight, result.chunks[i].renderData)
+    readChunk(stream, addr(m.chunks[0]) + i)
+
+    initRenderDataFromTiles(m.chunks[i].tiles, tilesPerChunkWidth, tilesPerChunkHeight, m.chunks[i].renderData)
+
+  patchAdjacencyInfo(m)
+
+  for i in 0 ..< numChunks:
+    fillVBuff(m.chunks[i].renderData, m.chunks[i].renderData.mesh.vBuff)
+  
+  return m

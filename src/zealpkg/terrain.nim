@@ -1,7 +1,7 @@
 import bgfxdotnim, render_texture, texture
 
 var
-  mapTextures: TextureArray
+  mapTextures*: TextureArray
 
 proc initMapTextures*(texFilenames: seq[string]) =
   mapTextures.handle = createTextureArrayMap(texFilenames)

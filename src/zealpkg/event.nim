@@ -69,8 +69,10 @@ proc handleEvent(event: Event) =
 
   if not eventHandlers.hasKey(key):
     return
+
+  let handlers = eventHandlers[key]
   
-  for eventHandler in eventHandlers[key]:
+  for eventHandler in handlers:
     if eventHandler.kind == hkEngine:
       eventHandler.handler.asProc(eventHandler.userArg, event.arg)
 

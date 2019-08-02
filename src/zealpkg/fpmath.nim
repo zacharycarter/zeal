@@ -5,19 +5,13 @@
 import math, algorithm
 export math
 
-var pi*: float32 = 3.141592653589793'f32
-
-var invPi*: float32 = 1.0'f32 / 3.141592653589793'f32
-
-var piHalf*: float32 = 1.570796326794897'f32
-
-var sqrt2*: float32 = 1.414213562373095'f32
+var invPi*: float32 = 1.0'f32 / PI
 
 proc toRad*(deg: float32): float32 {.inline.} =
-    return deg * pi / 180.0'f32
+    return deg * PI / 180.0'f32
 
 proc toDeg*(rad: float32): float32 {.inline.} =
-    return rad * 180.0'f32 / pi
+    return rad * 180.0'f32 / PI
 
 proc ffloor*(f: float32): float32 {.inline.} =
     return floor(f)

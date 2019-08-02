@@ -1,4 +1,4 @@
-import bgfxdotnim, asset, camera, camera_controls, entity, map, render, collision, fpmath, tables, simulation
+import bgfxdotnim, asset, camera, camera_controls, entity, tile, map, render, collision, fpmath, tables, simulation, shader
 
 const 
   numCameras = 2
@@ -61,6 +61,8 @@ proc initCameras() =
     setSpeed(gameState.cameras[i], camSpeed)
     setSensitivity(gameState.cameras[i], 0.05'f32)
     reset(gameState.cameras[i])
+
+  bgfx_set_uniform(viewPosUniform, addr gameState.cameras[gameState.activeCamIdx], 1)
 
 proc reset() =
   for i in 0 ..< numCameras:

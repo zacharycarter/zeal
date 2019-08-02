@@ -40,9 +40,9 @@ proc rtsOnMouseMove(unused: pointer, eventArg: pointer) =
   sdl.getMouseState(mouseX, mouseY)
 
   ctx.moveUp = (mouseY == 0)
-  ctx.moveDown = (mouseY == 540 - 1)
+  ctx.moveDown = (mouseY == 1080 - 1)
   ctx.moveLeft = (mouseX == 0)
-  ctx.moveRight = (mouseX == 960 - 1)
+  ctx.moveRight = (mouseX == 1920 - 1)
 
 proc rtsOnMouseDown(unused: pointer, eventArg: pointer) =
   var ctx = camCtx.activeCtx.rts

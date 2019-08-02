@@ -12,6 +12,8 @@ binDir        = "."
 
 # Dependencies
 
-requires "nim >= 0.19.0"
+requires "nim >= 0.20.2"
+requires "compiler >= 0.20.2"
 requires "bgfxdotnim >= 0.1.0"
 requires "sdl2 >= 2.0.0"
+requires "stb_image >= 2.3"

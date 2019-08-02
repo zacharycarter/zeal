@@ -23,11 +23,11 @@ var
 
 proc setViewTransform*(view: var Mat4) =
   var proj: Mat4
-  mtxProj(proj, 45.0'f32, 960.0 / 540.0, 0.1, 1000.0, rendererCaps.homogeneousDepth)
+  mtxProj(proj, 45.0'f32, 1920.0 / 1080.0, 0.1, 1000.0, rendererCaps.homogeneousDepth)
   bgfx_set_view_transform(0, addr view[0], addr proj[0])
 
 proc draw*(renderData: RenderData, model: var Mat4) =
-  bgfx_set_view_rect(0, 0, 0, 960'u16, 540'u16)
+  bgfx_set_view_rect(0, 0, 0, 1920'u16, 1080'u16)
 
   bgfx_touch(0)
   
@@ -35,24 +35,28 @@ proc draw*(renderData: RenderData, model: var Mat4) =
   # mtxIdentity(modelT)
   discard bgfx_set_transform(addr model[0], 1)
   
-  bgfx_set_vertex_buffer(0'u8, renderData.mesh.vBuffHandle, 0'u32, uint32(renderData.mesh.numVerts))
+  bgfx_set_dynamic_vertex_buffer(0'u8, renderData.mesh.vBuffHandle, 0'u32, uint32(renderData.mesh.numVerts))
   # bgfx_set_index_buffer(renderData.mesh.iBuffHandle, 0'u32, 36'u32)
 
-  bgfx_set_state( 0'u64 or BGFX_STATE_WRITE_R or BGFX_STATE_WRITE_B or BGFX_STATE_WRITE_G or BGFX_STATE_WRITE_A or
-                  BGFX_STATE_WRITE_Z or BGFX_STATE_DEPTH_TEST_LESS or BGFX_STATE_CULL_CW or BGFX_STATE_MSAA, 0)
+  bgfx_set_texture(0, sTexColor, mapTextures.handle, high(uint32))
+
+  # bgfx_set_state( 0'u64 or BGFX_STATE_WRITE_RGB or BGFX_STATE_WRITE_Z or BGFX_STATE_DEPTH_TEST_LESS or  BGFX_STATE_MSAA, 0)
+  bgfx_set_state( 0'u64 or BGFX_STATE_WRITE_RGB or BGFX_STATE_WRITE_Z or BGFX_STATE_DEPTH_TEST_LESS or BGFX_STATE_CULL_CCW, 0)
 
   bgfx_submit(0, renderData.shaderProgram, 0, false)
+
+proc fillVBuff*(renderData: var RenderData, vBuff: var seq[Vertex]) =
+  var mem = bgfx_copy(cast[pointer](addr vbuff[0]), uint32(sizeof(Vertex) * renderData.mesh.numVerts))
+  renderData.mesh.vBuffHandle = bgfx_create_dynamic_vertex_buffer_mem(mem, addr renderData.mesh.vDecl, BGFX_BUFFER_ALLOW_RESIZE)
 
 proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Vertex]) =
   bgfx_vertex_decl_begin(addr renderData.mesh.vDecl, rendererType)
   bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_POSITION, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false)
   bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD0, 2, BGFX_ATTRIB_TYPE_FLOAT, false, false)
-  # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_NORMAL, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false)
-  # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD3, 1, BGFX_ATTRIB_TYPE_INT16, false, false)
-  # bgfx_vertex_decl_skip(addr renderData.mesh.vDecl, 24)
-  # bgfx_vertex_decl_skip(addr renderData.mesh.vDecl, 24)
-  # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD4, 1, BGFX_ATTRIB_TYPE_INT16, false, false)
-  # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD5, 4, BGFX_ATTRIB_TYPE_INT16, false, false)
+  bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_NORMAL, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false)
+  bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD2, 1, BGFX_ATTRIB_TYPE_INT16, false, false)
+  bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD3, 1, BGFX_ATTRIB_TYPE_INT16, false, false)
+  bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_TEXCOORD4, 4, BGFX_ATTRIB_TYPE_INT16, false, false)
   bgfx_vertex_decl_end(addr renderData.mesh.vDecl)
   # bgfx_vertex_decl_begin(addr renderData.mesh.vDecl, rendererType)
   # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_POSITION, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false)
@@ -75,8 +79,8 @@ proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Verte
   #   PosColorVertex(x: 1.0'f32,  y: -1.0f, z: -1.0f, abgr: 0xffffffff'u32)
   # ]
 
-  var mem = bgfx_copy(cast[pointer](addr vbuff[0]), uint32(sizeof(Vertex) * renderData.mesh.numVerts))
-  renderData.mesh.vBuffHandle = bgfx_create_vertex_buffer(mem, addr renderData.mesh.vDecl, BGFX_BUFFER_NONE)
+  # var mem = bgfx_copy(cast[pointer](addr vbuff[0]), uint32(sizeof(Vertex) * renderData.mesh.numVerts))
+  # renderData.mesh.vBuffHandle = bgfx_create_dynamic_vertex_buffer_mem(mem, addr renderData.mesh.vDecl, BGFX_BUFFER_ALLOW_RESIZE)
   
   # var triList = [
   #   0'u16, 1, 2, # 0
@@ -108,7 +112,8 @@ proc init*(basePath: string) =
 
   shader.init(basePath)
 
-  bgfx_set_debug(BGFX_DEBUG_WIREFRAME)
+  # bgfx_set_debug(BGFX_DEBUG_WIREFRAME)
+  bgfx_reset(950, 540, BGFX_RESET_VSYNC, BGFX_TEXTURE_FORMAT_COUNT)
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 
 proc shutdown*() =
