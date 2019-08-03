@@ -109,6 +109,7 @@ proc init(): bool =
 
 proc shutdown() =
   echo "shutting down"
+  game.shutdown()
   render.shutdown()
   sdl.destroyWindow(window)
   sdl.quit()

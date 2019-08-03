@@ -1,9 +1,5 @@
 import bgfxdotnim, sdl2 as sdl, tables
 
-var 
-  viewPosUniform*: bgfx_uniform_handle_t
-  sTexColor*: bgfx_uniform_handle_t
-
 type
   ShaderResource = object
     programHandle: bgfx_program_handle_t
@@ -70,19 +66,6 @@ proc init*(basePath: string) =
     let fsh = if shader.fragPath.len > 0: loadShader(basePath, shader.fragPath) else: BGFX_INVALID_HANDLE
 
     programHandles.add(shader.name, bgfx_create_program(vsh, fsh, true))
-  
-  sTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_SAMPLER, 11)
-  var ambientColorU = bgfx_create_uniform("ambient_color", BGFX_UNIFORM_TYPE_VEC4, 1)
-  var lightColorU = bgfx_create_uniform("light_color", BGFX_UNIFORM_TYPE_VEC4, 1)
-  var lightPosU = bgfx_create_uniform("light_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
-  viewPosUniform = bgfx_create_uniform("view_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
-  
-  var ambientLightColor = [1.0'f32, 1.0, 1.0, 0.0]
-  var emitLightPos = [1664.0'f32, 1024.0, 384.0]
-
-  bgfx_set_uniform(ambientColorU, addr ambientLightColor[0], 1)
-  bgfx_set_uniform(lightColorU, addr ambientLightColor[0], 1)
-  bgfx_set_uniform(lightPosU, addr emitLightPos[0], 1)
 
 proc destroy*() =
   for shaderName, programHandle in programHandles:

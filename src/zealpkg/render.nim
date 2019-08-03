@@ -1,4 +1,4 @@
-import bgfxdotnim, sdl2 as sdl, shader, terrain, mesh, material, tables, vertex, fpmath
+import bgfxdotnim, sdl2 as sdl, shader, mesh, material, tables, texture, vertex, fpmath
 
 const
   vertsPerSideFace* = 6
@@ -17,6 +17,14 @@ type
     shaderProgram*: bgfx_program_handle_t
     depthShaderProgram*: bgfx_program_handle_t
 
+  MapRenderData* = object
+    uAmbientColor*: bgfx_uniform_handle_t
+    uLightColor*: bgfx_uniform_handle_t
+    uLightPos*: bgfx_uniform_handle_t
+    uViewPos*: bgfx_uniform_handle_t
+    sTexColor*: bgfx_uniform_handle_t
+    textures*: TextureArray
+
 var 
   rendererType: bgfx_renderer_type_t
   rendererCaps*: ptr bgfx_caps_t
@@ -26,28 +34,24 @@ proc setViewTransform*(view: var Mat4) =
   mtxProj(proj, 45.0'f32, 1280.0 / 720.0, 0.1, 1000.0, rendererCaps.homogeneousDepth)
   bgfx_set_view_transform(0, addr view[0], addr proj[0])
 
-proc draw*(renderData: RenderData, model: var Mat4) =
+proc draw*(mapRenderData: MapRenderData, renderData: RenderData, model: var Mat4) =
   bgfx_set_view_rect(0, 0, 0, 1280'u16, 720'u16)
 
   bgfx_touch(0)
-  
-  # var modelT: Mat4
-  # mtxIdentity(modelT)
+
   discard bgfx_set_transform(addr model[0], 1)
   
-  bgfx_set_dynamic_vertex_buffer(0'u8, renderData.mesh.vBuffHandle, 0'u32, uint32(renderData.mesh.numVerts))
-  # bgfx_set_index_buffer(renderData.mesh.iBuffHandle, 0'u32, 36'u32)
+  bgfx_set_vertex_buffer(0'u8, renderData.mesh.vBuffHandle, 0'u32, uint32(renderData.mesh.numVerts))
 
-  bgfx_set_texture(0, sTexColor, mapTextures.handle, high(uint32))
+  bgfx_set_texture(0, mapRenderData.sTexColor, mapRenderData.textures.handle, high(uint32))
 
-  # bgfx_set_state( 0'u64 or BGFX_STATE_WRITE_RGB or BGFX_STATE_WRITE_Z or BGFX_STATE_DEPTH_TEST_LESS or  BGFX_STATE_MSAA, 0)
   bgfx_set_state( 0'u64 or BGFX_STATE_WRITE_RGB or BGFX_STATE_WRITE_Z or BGFX_STATE_DEPTH_TEST_LESS or BGFX_STATE_CULL_CCW, 0)
 
   bgfx_submit(0, renderData.shaderProgram, 0, false)
 
 proc fillVBuff*(renderData: var RenderData, vBuff: var seq[Vertex]) =
   var mem = bgfx_copy(cast[pointer](addr vbuff[0]), uint32(sizeof(Vertex) * renderData.mesh.numVerts))
-  renderData.mesh.vBuffHandle = bgfx_create_dynamic_vertex_buffer_mem(mem, addr renderData.mesh.vDecl, BGFX_BUFFER_ALLOW_RESIZE)
+  renderData.mesh.vBuffHandle = bgfx_create_vertex_buffer(mem, addr renderData.mesh.vDecl, BGFX_BUFFER_NONE)
 
 proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Vertex]) =
   bgfx_vertex_decl_begin(addr renderData.mesh.vDecl, rendererType)
@@ -117,6 +121,5 @@ proc init*(basePath: string) =
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 
 proc shutdown*() =
-  terrain.destroy()
   shader.destroy()
   bgfx_shutdown()

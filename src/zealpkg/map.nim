@@ -1,4 +1,4 @@
-import camera, collision, fpmath, streams, strutils, terrain, bgfxdotnim, material, mesh, render, render_asset_load, tile, vertex
+import camera, collision, fpmath, streams, strutils, bgfxdotnim, material, mesh, render, render_asset_load, render_texture, tile, vertex
 
 template `+`*[T](p: ptr T, off: int): ptr T =
   cast[ptr type(p[])](cast[ByteAddress](p) +% off * sizeof(p[]))
@@ -10,14 +10,20 @@ proc a2i(a: char): int =
   result = int(a) - int('0')
 
 proc modelMatrixForChunk(map: Map, cp: ChunkPos, mtx: var array[16, float32]) =
+  if map == nil:
+    return
+
   let
     xOffset = -(cp.c * tilesPerChunkWidth * xCoordsPerTile)
     zOffset = cp.r * tilesPerChunkHeight * zCoordsPerTile
-    chunkPos = [map.pos[0] + float32(xOffset), map.pos[1], map.pos[2] + float32(zOffset)]
+    chunkPos = [map[].pos[0] + float32(xOffset), map[].pos[1], map[].pos[2] + float32(zOffset)]
   
   mtxTranslate(mtx, chunkPos[0], chunkPos[1], chunkPos[2])
   
 proc aabbForChunk(map: Map, chunkPos: ChunkPos, outChunkAabb: var AABB) =
+  if map == nil:
+    return
+
   let
     chunkXDim = tilesPerChunkWidth * xCoordsPerTile
     chunkZDim = tilesPerChunkHeight * zCoordsPerTile
@@ -25,10 +31,10 @@ proc aabbForChunk(map: Map, chunkPos: ChunkPos, outChunkAabb: var AABB) =
     xOffset = -(chunkPos.c * chunkXDim)
     zOffset = (chunkPos.r * chunkZDim)
   
-  outChunkAabb.xMax = map.pos[0] + float32(xOffset)
+  outChunkAabb.xMax = map[].pos[0] + float32(xOffset)
   outChunkAabb.xMin = outChunkAabb.xMax - float32(chunkXDim)
 
-  outChunkAabb.zMin = map.pos[2] + float32(zOffset)
+  outChunkAabb.zMin = map[].pos[2] + float32(zOffset)
   outChunkAabb.zMax = outChunkAabb.zMin + float32(chunkZDim)
 
   outChunkAabb.yMin = 0.0'f32
@@ -39,11 +45,14 @@ proc aabbForChunk(map: Map, chunkPos: ChunkPos, outChunkAabb: var AABB) =
   assert(outChunkAabb.zMax >= outChunkAabb.zMin)
 
 proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
+  if map == nil:
+    return
+
   var frustum: Frustum
   makeFrustum(cam, frustum)
 
-  for r in 0 ..< map.height:
-   for c in 0 ..< map.width:
+  for r in 0 ..< map[].height:
+   for c in 0 ..< map[].width:
       var chunkAabb: AABB
       aabbForChunk(map, ChunkPos(r: r, c: c), chunkAabb)
 
@@ -51,29 +60,33 @@ proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
         continue
 
       var chunkModel: Mat4
-      let chunk = map.chunks[r * map.width + c]
+      let chunk = map[].chunks[r * map.width + c]
       modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
-      draw(chunk.renderData, chunkModel)
+      draw(map[].renderData, chunk.renderData, chunkModel)
 
-proc centerAtOrigin*(map: var Map) =
+proc centerAtOrigin*(map: Map) =
+  if map == nil:
+    return
+
   let 
-    width = map.width * tilesPerChunkWidth * xCoordsPerTile
-    height = map.height * tilesPerChunkHeight * zCoordsPerTile
+    width = map[].width * tilesPerChunkWidth * xCoordsPerTile
+    height = map[].height * tilesPerChunkHeight * zCoordsPerTile
   
-  map.pos = [(float32(width) / 2.0'f32), 0.0, -(float32(height) / 2.0)]
+  map[].pos = [(float32(width) / 2.0'f32), 0.0, -(float32(height) / 2.0)]
 
-proc patchAdjacencyInfo(map: var Map) =
-  for r in 0 ..< map.height:
-    for c in 0 ..< map.width:
+proc patchAdjacencyInfo(map: Map) =
+  for r in 0 ..< map[].height:
+    for c in 0 ..< map[].width:
+      var chunkRenderData = map[].chunks[r * map[].width + c].renderData
       for tileR in 0 ..< tilesPerChunkHeight:
         for tileC in 0 ..< tilesPerChunkHeight:
           let 
             desc = TileDesc(chunkR: r, chunkC: c, tileR: tileR, tileC: tileC)
-            tile = map.chunks[r * map.width + c].tiles[tileR * tilesPerChunkWidth + tileC]
+            tile = map[].chunks[r * map[].width + c].tiles[tileR * tilesPerChunkWidth + tileC]
           
-          patchTileVertsBlend(map.chunks[r * map.width + c].renderData, map, desc)
-          # if tile.blendNormals:
-            # patchTileVertsSmooth(chunkRenderData, map, desc)
+          patchTileVertsBlend(chunkRenderData, map, desc)
+          if tile.blendNormals:
+            patchTileVertsSmooth(chunkRenderData, map, desc)
 
 
 proc parseTile(str: string, tile: ptr Tile) =
@@ -119,32 +132,60 @@ proc readMaterial(stream: FileStream, texName: var string) =
 
 
 proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
-  var m: Map
-  m.width = header.numCols
-  m.height = header.numRows
-  m.pos = [0.0'f32, 0.0, 0.0]
+  var m = new Map
+  m[].width = header.numCols
+  m[].height = header.numRows
+  m[].pos = [0.0'f32, 0.0, 0.0]
 
-  m.minimapVres = [1280, 720]
-  m.minimapCenterPos = [1280, 720 - 192]
-  m.minimapSz = 256
+  m[].minimapVres = [1280, 720]
+  m[].minimapCenterPos = [1280, 720 - 192]
+  m[].minimapSz = 256
 
   var texnames = newSeq[string](header.numMaterials)
   
   for i in 0 ..< header.numMaterials:
     readMaterial(stream, texNames[i])
 
-  initMapTextures(texnames)
+  m[].renderData.textures.handle = createTextureArrayMap(texnames) 
+
+  m[].renderData.sTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_SAMPLER, 11)
+  m[].renderData.uAmbientColor = bgfx_create_uniform("ambient_color", BGFX_UNIFORM_TYPE_VEC4, 1)
+  m[].renderData.uLightColor = bgfx_create_uniform("light_color", BGFX_UNIFORM_TYPE_VEC4, 1)
+  m[].renderData.uLightPos = bgfx_create_uniform("light_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
+  m[].renderData.uViewPos = bgfx_create_uniform("view_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
+  
+  var ambientLightColor = [1.0'f32, 1.0, 1.0, 0.0]
+  var emitLightPos = [1664.0'f32, 1024.0, 384.0]
+
+  bgfx_set_uniform(m[].renderData.uAmbientColor, addr ambientLightColor[0], 1)
+  bgfx_set_uniform(m[].renderData.uLightColor, addr ambientLightColor[0], 1)
+  bgfx_set_uniform(m[].renderData.uLightPos, addr emitLightPos[0], 1)
 
   let numChunks = header.numRows * header.numCols
-  m.chunks = newSeq[Chunk](numChunks)
+  m[].chunks.setLen(numChunks)
   for i in 0 ..< numChunks:
-    readChunk(stream, addr(m.chunks[0]) + i)
+    readChunk(stream, addr(m[].chunks[0]) + i)
 
-    initRenderDataFromTiles(m.chunks[i].tiles, tilesPerChunkWidth, tilesPerChunkHeight, m.chunks[i].renderData)
+    initRenderDataFromTiles(m[].chunks[i].tiles, tilesPerChunkWidth, tilesPerChunkHeight, m[].chunks[i].renderData)
 
   patchAdjacencyInfo(m)
 
   for i in 0 ..< numChunks:
-    fillVBuff(m.chunks[i].renderData, m.chunks[i].renderData.mesh.vBuff)
+    fillVBuff(m[].chunks[i].renderData, m[].chunks[i].renderData.mesh.vBuff)
   
   return m
+
+proc destroy*(map: Map) =
+  if map == nil:
+    return
+
+  for chunk in map[].chunks:
+    bgfx_destroy_vertex_buffer(chunk.renderData.mesh.vBuffHandle)
+
+  bgfx_destroy_uniform(map[].renderData.uAmbientColor)
+  bgfx_destroy_uniform(map[].renderData.uLightColor)
+  bgfx_destroy_uniform(map[].renderData.uLightPos)
+  bgfx_destroy_uniform(map[].renderData.uViewPos)
+  bgfx_destroy_uniform(map[].renderData.sTexColor)
+
+  bgfx_destroy_texture(map[].renderData.textures.handle)

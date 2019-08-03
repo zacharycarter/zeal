@@ -62,9 +62,9 @@ proc initCameras() =
     setSensitivity(gameState.cameras[i], 0.05'f32)
     reset(gameState.cameras[i])
 
-  bgfx_set_uniform(viewPosUniform, addr gameState.cameras[gameState.activeCamIdx], 1)
-
 proc reset() =
+  gameState.map.destroy()
+
   for i in 0 ..< numCameras:
     reset(gameState.cameras[i])
 
@@ -88,3 +88,6 @@ proc newGame*(mapDir: string, mapName: string) =
   gameState.map = loadMap(mapDir, mapName)
 
   initMap()
+
+proc shutdown*() =
+  reset()

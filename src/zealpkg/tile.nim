@@ -190,7 +190,7 @@ type
     numRows*: int
     numCols*: int
 
-  Map* = object
+  Map* = ref object
     # ------------------------------------------------------------------------
     # Map dimensions in numbers of chunks.
     # ------------------------------------------------------------------------
@@ -223,6 +223,7 @@ type
     # ------------------------------------------------------------------------
     #
     navPrivate*: pointer
+    renderData*: MapRenderData
     # ------------------------------------------------------------------------
     # The map chunks stored in row-major order. In total, there must be
     # (width * height) number of chunks.
@@ -307,17 +308,17 @@ proc tileSEHeight(tile: Tile): int =
   else:
     result = tile.baseHeight
 
-proc tileForDesc(map: var Map, desc: TileDesc, o: ptr ptr Tile): bool =
-  if desc.chunkR < 0 or desc.chunkR >= map.height:
+proc tileForDesc(map: Map, desc: TileDesc, o: ptr ptr Tile): bool =
+  if desc.chunkR < 0 or desc.chunkR >= map[].height:
     return false
-  if desc.chunkC < 0 or desc.chunkC >= map.width:
+  if desc.chunkC < 0 or desc.chunkC >= map[].width:
     return false
   if desc.tileR < 0 or desc.tileR >= tilesPerChunkHeight:
     return false
   if desc.tileC < 0  or desc.tileC >= tilesPerChunkWidth:
     return false
   
-  o[] = cast[ptr Tile](addr(map.chunks[desc.chunkR * map.width + desc.chunkC]
+  o[] = cast[ptr Tile](addr(map[].chunks[desc.chunkR * map[].width + desc.chunkC]
     .tiles[desc.tileR * tilesPerChunkWidth + desc.tileC]))
   result = true
 
@@ -525,10 +526,10 @@ proc smoothTileCornerNormals(adjCw: array[4, ptr Tile], v: ptr Vertex) =
   vec3Norm(normTotal, normTotal)
   v[].normal = normTotal
 
-proc patchTileVertsBlend*(chunkRenderData: var RenderData, map: var Map, tile: TileDesc) =
+proc patchTileVertsBlend*(chunkRenderData: var RenderData, map: Map, tile: TileDesc) =
   let res = MapResolution(
-    chunkW: map.width,
-    chunkH: map.height,
+    chunkW: map[].width,
+    chunkH: map[].height,
     tileW: tilesPerChunkWidth,
     tileH: tilesPerChunkHeight
   )
@@ -755,14 +756,14 @@ proc patchTileVertsBlend*(chunkRenderData: var RenderData, map: var Map, tile: T
     provoking[i][].adjacentMatIndices[2] = int16(adjCenterMask)
     provoking[i][].adjacentMatIndices[3] = int16(curr.middleMask)
 
-proc patchTileVertsSmooth*(chunkRenderData: var RenderData, map: var Map, tile: TileDesc) =
+proc patchTileVertsSmooth*(chunkRenderData: var RenderData, map: Map, tile: TileDesc) =
   let offset = vertsPerTile * (tile.tileR * tilesPerChunkWidth + tile.tileC)
   
   var tfvb = cast[ptr TopFaceVbuff](addr chunkRenderData.mesh.vBuff[offset])
   
   var res = MapResolution(
-    chunkW: map.width,
-    chunkH: map.height,
+    chunkW: map[].width,
+    chunkH: map[].height,
     tileW: tilesPerChunkWidth,
     tileH: tilesPerChunkHeight
   )
