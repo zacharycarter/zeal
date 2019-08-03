@@ -149,17 +149,6 @@ proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
   m[].renderData.textures.handle = createTextureArrayMap(texnames) 
 
   m[].renderData.sTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_SAMPLER, 11)
-  m[].renderData.uAmbientColor = bgfx_create_uniform("ambient_color", BGFX_UNIFORM_TYPE_VEC4, 1)
-  m[].renderData.uLightColor = bgfx_create_uniform("light_color", BGFX_UNIFORM_TYPE_VEC4, 1)
-  m[].renderData.uLightPos = bgfx_create_uniform("light_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
-  m[].renderData.uViewPos = bgfx_create_uniform("view_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
-  
-  var ambientLightColor = [1.0'f32, 1.0, 1.0, 0.0]
-  var emitLightPos = [1664.0'f32, 1024.0, 384.0]
-
-  bgfx_set_uniform(m[].renderData.uAmbientColor, addr ambientLightColor[0], 1)
-  bgfx_set_uniform(m[].renderData.uLightColor, addr ambientLightColor[0], 1)
-  bgfx_set_uniform(m[].renderData.uLightPos, addr emitLightPos[0], 1)
 
   let numChunks = header.numRows * header.numCols
   m[].chunks.setLen(numChunks)
@@ -182,10 +171,6 @@ proc destroy*(map: Map) =
   for chunk in map[].chunks:
     bgfx_destroy_vertex_buffer(chunk.renderData.mesh.vBuffHandle)
 
-  bgfx_destroy_uniform(map[].renderData.uAmbientColor)
-  bgfx_destroy_uniform(map[].renderData.uLightColor)
-  bgfx_destroy_uniform(map[].renderData.uLightPos)
-  bgfx_destroy_uniform(map[].renderData.uViewPos)
   bgfx_destroy_uniform(map[].renderData.sTexColor)
 
   bgfx_destroy_texture(map[].renderData.textures.handle)

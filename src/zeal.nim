@@ -121,11 +121,11 @@ proc run*() =
     ret = QUIT_FAILURE
     quit(ret)
   
-  #try:
-    #entryPointScript = compileScript("main.nims")
-    #WentryPointScript.call("entry")
   try:
-    newGame("assets/maps", "foo.zmap")
+    entryPointScript = compileScript("main.nims")
+    entryPointScript.call("entry")
+  # try:
+  #   newGame("assets/maps", "foo.zmap")
     while not quit:
       processSDLEvents()
       event.serviceQueue()

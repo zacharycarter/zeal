@@ -1,4 +1,5 @@
-import game
+import game, render, fpmath
+from compiler/astalgo import debug
 from compiler/idents import IdentCache
 from compiler/vmdef import registerCallback, VmArgs, PCtx
 from compiler/modulegraphs import ModuleGraph
@@ -33,8 +34,15 @@ type
     context*: PCtx
     watcher*: FlowVar[int]
 
+proc getVec3(a: VmArgs): Vec3 =
+  let keyset = getNode(a, 0)
+  doAssert keyset.kind == nkBracket
+  doAssert len(keyset.sons) == 3
+  for i, son in keyset.sons:
+    doAssert son.kind == nkFloatLit
+    result[i] = son.floatVal
 
-proc exposeScriptApi* (script: Script) =
+proc exposeScriptApi*(script: Script) =
   template expose (procName, procBody: untyped) {.dirty.} =
     script.context.registerCallback script.moduleName & "." & astToStr(procName),
         proc (a: VmArgs) =
@@ -42,6 +50,18 @@ proc exposeScriptApi* (script: Script) =
     
   expose newGame:
     game.newGame(getString(a, 0), getString(a, 1))
+  
+  expose setAmbientLightColor:
+    var val = getVec3(a)
+    render.setAmbientLightColor(val)
+
+  expose setEmitLightColor:
+    var val = getVec3(a)
+    render.setEmitLightColor(val)
+
+  expose setEmitLightPos:
+    var val = getVec3(a)
+    render.setEmitLightPos(val)
     # expose add:
     #     # We need to use procs like getInt to retrieve the argument values from VmArgs
     #     # Instead of using the return statement we need to use setResult

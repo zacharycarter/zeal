@@ -20,12 +20,12 @@ import apiImpl
 
 # The path to the directory that contains the scripts, api declaration, and stdlib source
 let 
-  scriptsDir = getAppDir() / "scripts"
+  scriptsDir = getCurrentDir() / "scripts"
   configRef = newConfigRef()
   identCache = newIdentCache()
 
 configRef.libpath = AbsoluteDir(scriptsDir & "/stdlib")
-configRef.implicitIncludes.add(getAppDir() / "src/zealpkg/api.nim")
+configRef.implicitIncludes.add(getCurrentDir() / "src/zealpkg/api.nim")
 
 
 # Nodes can be passed to setResult or used as arguments in script.call

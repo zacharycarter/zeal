@@ -18,16 +18,25 @@ type
     depthShaderProgram*: bgfx_program_handle_t
 
   MapRenderData* = object
-    uAmbientColor*: bgfx_uniform_handle_t
-    uLightColor*: bgfx_uniform_handle_t
-    uLightPos*: bgfx_uniform_handle_t
-    uViewPos*: bgfx_uniform_handle_t
     sTexColor*: bgfx_uniform_handle_t
     textures*: TextureArray
 
 var 
   rendererType: bgfx_renderer_type_t
   rendererCaps*: ptr bgfx_caps_t
+  uAmbientColor: bgfx_uniform_handle_t
+  uEmitLightColor: bgfx_uniform_handle_t
+  uEmitLightPos: bgfx_uniform_handle_t
+  uViewPos: bgfx_uniform_handle_t
+
+proc setAmbientLightColor*(val: var Vec3) =
+  bgfx_set_uniform(uAmbientColor, addr val[0], 1)
+
+proc setEmitLightColor*(val: var Vec3) =
+  bgfx_set_uniform(uEmitLightColor, addr val[0], 1)
+
+proc setEmitLightPos*(val: var Vec3) =
+  bgfx_set_uniform(uEmitLightPos, addr val[0], 1)
 
 proc setViewTransform*(view: var Mat4) =
   var proj: Mat4
@@ -120,6 +129,24 @@ proc init*(basePath: string) =
   bgfx_reset(950, 540, BGFX_RESET_VSYNC, BGFX_TEXTURE_FORMAT_COUNT)
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 
+  uAmbientColor = bgfx_create_uniform("ambient_color", BGFX_UNIFORM_TYPE_VEC4, 1)
+  uEmitLightColor = bgfx_create_uniform("light_color", BGFX_UNIFORM_TYPE_VEC4, 1)
+  uEmitLightPos = bgfx_create_uniform("light_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
+  uViewPos = bgfx_create_uniform("view_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
+
+  
+  # var ambientLightColor = [1.0'f32, 1.0, 1.0, 0.0]
+  # var emitLightPos = [1664.0'f32, 1024.0, 384.0]
+  
+  # bgfx_set_uniform(m[].renderData.uAmbientColor, addr ambientLightColor[0], 1)
+  # bgfx_set_uniform(m[].renderData.uLightColor, addr ambientLightColor[0], 1)
+  # bgfx_set_uniform(m[].renderData.uLightPos, addr emitLightPos[0], 1)
+
 proc shutdown*() =
+  bgfx_destroy_uniform(uAmbientColor)
+  bgfx_destroy_uniform(uEmitLightColor)
+  bgfx_destroy_uniform(uEmitLightPos)
+  bgfx_destroy_uniform(uViewPos)
+
   shader.destroy()
   bgfx_shutdown()
