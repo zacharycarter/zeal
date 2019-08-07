@@ -1,10 +1,14 @@
-import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl
-import zealpkg / [event, game, simulation, render, script, enims, apiImpl]
+import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl, nimLUA, ../lib/nuklear
+import zealpkg / [event, game, simulation, render, script, fpmath]
 
 const
   SDL_MAJOR_VERSION* = 2
   SDL_MINOR_VERSION* = 0
   SDL_PATCHLEVEL* = 5
+
+type
+  Foo* = object
+    style: nk_style_window
 
 var
   quit = false
@@ -25,7 +29,10 @@ when defined(windows):
 
 var
   window: sdl.WindowPtr
-  entryPointScript: Script
+  L = newNimLua()
+
+proc newFoo*(): Foo =
+  result
 
 proc onUserQuit(user: pointer, event: pointer) =
   quit = true
@@ -43,8 +50,7 @@ proc processSDLEvents() =
         quit = true
         break
       of SDL_SCANCODE_F9:
-        entryPointScript = compileScript("main.nims")
-        entryPointScript.call("entry")
+        L.dofile("scripts/main.lua")
         break
       else:
         discard
@@ -122,8 +128,16 @@ proc run*() =
     quit(ret)
   
   try:
-    entryPointScript = compileScript("main.nims")
-    entryPointScript.call("entry")
+    L.bindObject(Foo):
+      newFoo -> constructor
+
+    L.bindFunction("z"):
+      setAmbientLightColor
+      setEmitLightColor
+      setEmitLightPos
+      newGame
+
+    L.dofile("scripts/main.lua")
   # try:
   #   newGame("assets/maps", "foo.zmap")
     while not quit:
@@ -134,6 +148,7 @@ proc run*() =
   except:
     echo getCurrentExceptionMsg()
   finally:
+    L.close()
     shutdown()
   
   quit(ret)

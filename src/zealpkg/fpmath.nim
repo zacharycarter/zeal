@@ -125,6 +125,9 @@ proc fgain*(time: float32; gain: float32): float32 {.inline.} =
 
 type Vec3* = array[3, float32]
 
+proc newVec3*(x, y, z: float32): Vec3 =
+    result = [x, y, z]
+
 proc vec3Move*(outResult: var Vec3; a: Vec3) {.inline.} =
     outResult[0] = a[0]
     outResult[1] = a[1]

@@ -1,0 +1,5 @@
+z.setAmbientLightColor({1.0, 1.0, 1.0})
+z.setEmitLightColor({1.0, 1.0, 1.0})
+z.setEmitLightPos({1664.0, 1024.0, 384.0})
+z.newGame("assets/maps", "foo.zmap")
+new.Foo()
