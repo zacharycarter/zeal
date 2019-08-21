@@ -1,4 +1,4 @@
-import deques, script, sdl2 as sdl, tables
+import deques, sdl2 as sdl, tables
 
 const globalId = not uint32(0)
 
@@ -37,7 +37,7 @@ type
 
   Handler* {.union.} = object
     asProc*: HandlerProc
-    asScriptCallable*: ScriptOpaque
+    # asScriptCallable*: ScriptOpaque
   
   HandlerDesc* = object
     kind: HandlerKind

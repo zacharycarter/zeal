@@ -1,5 +1,5 @@
 import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl, nimLUA, ../lib/nuklear
-import zealpkg / [event, game, simulation, render, script, fpmath]
+import zealpkg / [event, game, simulation, render, script, fpmath, script_ui]
 
 const
   SDL_MAJOR_VERSION* = 2
@@ -31,7 +31,7 @@ var
   window: sdl.WindowPtr
   L = newNimLua()
 
-proc newFoo*(): Foo =
+proc newWindow*(): Window =
   result
 
 proc onUserQuit(user: pointer, event: pointer) =
@@ -128,8 +128,8 @@ proc run*() =
     quit(ret)
   
   try:
-    L.bindObject(Foo):
-      newFoo -> constructor
+    L.bindObject(Window):
+      newWindow -> constructor
 
     L.bindFunction("z"):
       setAmbientLightColor

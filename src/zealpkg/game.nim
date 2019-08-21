@@ -1,4 +1,4 @@
-import bgfxdotnim, asset, camera, camera_controls, entity, tile, map, render, collision, fpmath, tables, simulation, shader
+import bgfxdotnim, asset, camera, camera_controls, entity, tile, map, render, collision, fpmath, tables, simulation, shader, terrain_new
 
 const 
   numCameras = 2
@@ -88,6 +88,7 @@ proc newGame*(mapDir: string, mapName: string) =
   gameState.map = loadMap(mapDir, mapName)
 
   initMap()
+  initNewTerrain()
 
 proc shutdown*() =
   reset()

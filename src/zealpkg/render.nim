@@ -30,13 +30,13 @@ var
   uViewPos: bgfx_uniform_handle_t
 
 proc setAmbientLightColor*(val: var Vec3) =
-  bgfx_set_uniform(uAmbientColor, addr val[0], 1)
+  bgfx_set_uniform(uAmbientColor, addr val, 1)
 
 proc setEmitLightColor*(val: var Vec3) =
-  bgfx_set_uniform(uEmitLightColor, addr val[0], 1)
+  bgfx_set_uniform(uEmitLightColor, addr val, 1)
 
 proc setEmitLightPos*(val: var Vec3) =
-  bgfx_set_uniform(uEmitLightPos, addr val[0], 1)
+  bgfx_set_uniform(uEmitLightPos, addr val, 1)
 
 proc setViewTransform*(view: var Mat4) =
   var proj: Mat4

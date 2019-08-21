@@ -6,6 +6,7 @@ type
     name: string
     vertexPath: string
     fragPath: string
+    computePath: string
 
 var 
   shaders: seq[ShaderResource] = @[
@@ -18,6 +19,32 @@ var
       name: "terrain",
       vertexPath: "vertex/terrain_vs.bin",
       fragPath: "fragment/terrain_fs.bin"
+    ),
+    ShaderResource(
+      name: "terrainRender",
+      vertexPath: "vertex/terrain_render_vs.bin",
+      fragPath: "fragment/terrain_render_fs.bin"
+    ),
+    ShaderResource(
+      name: "terrainRenderNormal",
+      vertexPath: "vertex/terrain_render_vs.bin",
+      fragPath: "fragment/terrain_render_normal_fs.bin"
+    ),
+    ShaderResource(
+      name: "terrainLOD",
+      computePath: "compute/terrain_lod_cs.bin"
+    ),
+    ShaderResource(
+      name: "terrainUpdateIndirect",
+      computePath: "compute/terrain_update_indirect_cs.bin"
+    ),
+    ShaderResource(
+      name: "terrainUpdateDraw",
+      computePath: "compute/terrain_update_draw_cs.bin"
+    ),
+    ShaderResource(
+      name: "terrainInit",
+      computePath: "compute/terrain_init_cs.bin"
     )
   ]
   programHandles*: Table[string, bgfx_program_handle_t]
@@ -62,10 +89,14 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
 
 proc init*(basePath: string) =
   for shader in shaders:
-    let vsh = loadShader(basePath, shader.vertexPath)
+    let vsh = if shader.vertexPath.len > 0: loadShader(basePath, shader.vertexPath) else: BGFX_INVALID_HANDLE
     let fsh = if shader.fragPath.len > 0: loadShader(basePath, shader.fragPath) else: BGFX_INVALID_HANDLE
+    let csh = if shader.computePath.len > 0: loadShader(basePath, shader.computePath) else: BGFX_INVALID_HANDLE
 
-    programHandles.add(shader.name, bgfx_create_program(vsh, fsh, true))
+    if csh == BGFX_INVALID_HANDLE:
+      programHandles.add(shader.name, bgfx_create_program(vsh, fsh, true))
+    else:
+      programHandles.add(shader.name, bgfx_create_compute_program(csh, true))
 
 proc destroy*() =
   for shaderName, programHandle in programHandles:
