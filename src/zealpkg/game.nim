@@ -53,8 +53,9 @@ proc activateCamera(camIdx: int, mode: CameraMode) =
 
 
 proc reset(camera: var Camera) =
-  setPitchAndYaw(camera, -(90.0'f32 - camTiltUpDegrees), 90.0'f32 + 45.0'f32)
-  setPosition(camera, [0.0'f32, camHeight, 0.0])
+  # setPitchAndYaw(camera, -(90.0'f32 - camTiltUpDegrees), 90.0'f32 + 45.0'f32)
+  # setPosition(camera, [0.0'f32, camHeight, 0.0])
+  setPosition(camera, [0.0'f32, 0.5, 0.0])
 
 proc initCameras() =
   for i in 0 ..< numCameras:
@@ -79,16 +80,19 @@ proc initMap() =
 
 proc init*() =
   initCameras()
+  initNewTerrain()
   reset()
+
+proc update*() =
+  updateNewTerrain()
 
 proc newGame*(mapDir: string, mapName: string) =
   reset()
 
   echo "creating new game - loading map..."
-  gameState.map = loadMap(mapDir, mapName)
+  # gameState.map = loadMap(mapDir, mapName)
 
-  initMap()
-  initNewTerrain()
+  # initMap()
 
 proc shutdown*() =
   reset()

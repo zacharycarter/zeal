@@ -1,3 +1,0 @@
-[submodule "lib/wren"]
-	path = lib/wren
-	url = https://github.com/geotre/wren.git

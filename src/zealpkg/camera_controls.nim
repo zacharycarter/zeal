@@ -117,7 +117,7 @@ proc rtsOnUpdateEnd(unused: pointer, eventArg: pointer) =
     if ctx.moveDown: vec3Add(dir, down, dir)
 
   moveDirectionTick(cam, dir)
-  tickFinishPerspective(cam)
+  # tickFinishPerspective(cam)
 
 
 proc resetControls*() =

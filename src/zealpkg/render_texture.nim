@@ -1,16 +1,16 @@
-import bgfxdotnim, texture, stb_image/read as stbi, stb_image/write as stbiw
+import bgfxdotnim, texture, ../../lib/bimgdotnim/bimg
 
 const TILE_TEX_RES = 128
 
 proc createTextureArrayMap*(texnames: seq[string]): bgfx_texture_handle_t =
   var textureArrayData: seq[uint8]
 
-  stbi.setFlipVerticallyOnLoad(true)
+  setFlipVerticallyOnLoad(true)
 
   for i, texname in texnames:
     var image: Image 
 
-    image.data = stbi.load("assets/map_textures/" & texname, image.width, image.height, image.numChannels, stbi.Default)
+    image.data = load("assets/map_textures/" & texname, image.width, image.height, image.numChannels, STBI_DEFAULT)
 
     var resizedImageData = newSeq[uint8](TILE_TEX_RES * TILE_TEX_RES * 3)
     let res = stbir_resize_uint8(

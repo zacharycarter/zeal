@@ -127,24 +127,24 @@ proc run*() =
     ret = QUIT_FAILURE
     quit(ret)
   
-  try:
-    L.bindObject(Window):
-      newWindow -> constructor
-
-    L.bindFunction("z"):
-      setAmbientLightColor
-      setEmitLightColor
-      setEmitLightPos
-      newGame
-
-    L.dofile("scripts/main.lua")
   # try:
-  #   newGame("assets/maps", "foo.zmap")
+  #   L.bindObject(Window):
+  #     newWindow -> constructor
+
+  #   L.bindFunction("z"):
+  #     setAmbientLightColor
+  #     setEmitLightColor
+  #     setEmitLightPos
+  #     newGame
+
+    # L.dofile("scripts/main.lua")
+  try:
+    newGame("assets/maps", "foo.zmap")
     while not quit:
       processSDLEvents()
       event.serviceQueue()
-      # game.update()
-      render()
+      game.update()
+      # render()
   except:
     echo getCurrentExceptionMsg()
   finally:

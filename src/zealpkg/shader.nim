@@ -15,11 +15,11 @@ var
       vertexPath: "vertex/basic_vs.bin",
       fragPath: "fragment/basic_fs.bin"
     ),
-    ShaderResource(
-      name: "terrain",
-      vertexPath: "vertex/terrain_vs.bin",
-      fragPath: "fragment/terrain_fs.bin"
-    ),
+    # ShaderResource(
+    #   name: "terrain",
+    #   vertexPath: "vertex/terrain_vs.bin",
+    #   fragPath: "fragment/terrain_fs.bin"
+    # ),
     ShaderResource(
       name: "terrainRender",
       vertexPath: "vertex/terrain_render_vs.bin",
@@ -43,13 +43,13 @@ var
       computePath: "compute/terrain_update_draw_cs.bin"
     ),
     ShaderResource(
-      name: "terrainInit",
+      name: "terrainInitIndirect",
       computePath: "compute/terrain_init_cs.bin"
     )
   ]
   programHandles*: Table[string, bgfx_program_handle_t]
 
-proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
+proc loadShader(basePath: string, filePath: string, shaderName: string): bgfx_shader_handle_t =
   var shaderPath: string
   case bgfx_get_renderer_type()
   of BGFX_RENDERER_TYPE_DIRECT3D11:
@@ -85,13 +85,14 @@ proc loadShader(basePath: string, filePath: string): bgfx_shader_handle_t =
 
   zeroMem(o, 1)
   result = bgfx_create_shader(bgfx_copy(ret, uint32(size)))
+  bgfx_set_shader_name(result, shaderName, int32.high)
   dealloc(ret)
 
 proc init*(basePath: string) =
   for shader in shaders:
-    let vsh = if shader.vertexPath.len > 0: loadShader(basePath, shader.vertexPath) else: BGFX_INVALID_HANDLE
-    let fsh = if shader.fragPath.len > 0: loadShader(basePath, shader.fragPath) else: BGFX_INVALID_HANDLE
-    let csh = if shader.computePath.len > 0: loadShader(basePath, shader.computePath) else: BGFX_INVALID_HANDLE
+    let vsh = if shader.vertexPath.len > 0: loadShader(basePath, shader.vertexPath, shader.name) else: BGFX_INVALID_HANDLE
+    let fsh = if shader.fragPath.len > 0: loadShader(basePath, shader.fragPath, shader.name) else: BGFX_INVALID_HANDLE
+    let csh = if shader.computePath.len > 0: loadShader(basePath, shader.computePath, shader.name) else: BGFX_INVALID_HANDLE
 
     if csh == BGFX_INVALID_HANDLE:
       programHandles.add(shader.name, bgfx_create_program(vsh, fsh, true))
