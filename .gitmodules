@@ -1,0 +1,3 @@
+[submodule "lib/bimgdotnim"]
+	path = lib/bimgdotnim
+	url = https://github.com/zacharycarter/bimg.nim.git
