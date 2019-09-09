@@ -1,7 +1,6 @@
 $input a_texcoord0
 $output v_texcoord0
 
-#include "../common.sh"
 #include "../terrain_common.sh"
 
 BUFFER_RO(u_CulledSubdBuffer, uint, 2);

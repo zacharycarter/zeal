@@ -142,13 +142,13 @@ proc run*() =
     newGame("assets/maps", "foo.zmap")
     while not quit:
       processSDLEvents()
-      event.serviceQueue()
+      # event.serviceQueue()
       game.update()
       # render()
   except:
     echo getCurrentExceptionMsg()
   finally:
-    L.close()
+    # L.close()
     shutdown()
   
   quit(ret)

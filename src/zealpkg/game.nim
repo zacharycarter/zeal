@@ -63,31 +63,31 @@ proc initCameras() =
     setSensitivity(gameState.cameras[i], 0.05'f32)
     reset(gameState.cameras[i])
 
-proc reset() =
-  gameState.map.destroy()
+# proc reset() =
+  # gameState.map.destroy()
 
-  for i in 0 ..< numCameras:
-    reset(gameState.cameras[i])
+  # for i in 0 ..< numCameras:
+    # reset(gameState.cameras[i])
 
-  activateCamera(0, cmRTS)
+  # activateCamera(0, cmRTS)
 
-proc render*() =
-  renderVisibleMap(gameState.map, gameState.cameras[gamestate.activeCamIdx], rpRegular)
-  discard bgfx_frame(false)
+# proc render*() =
+#   renderVisibleMap(gameState.map, gameState.cameras[gamestate.activeCamIdx], rpRegular)
+#   discard bgfx_frame(false)
 
 proc initMap() =
   centerAtOrigin(gameState.map)
 
 proc init*() =
-  initCameras()
+  # initCameras()
   initNewTerrain()
-  reset()
+  # reset()
 
 proc update*() =
   updateNewTerrain()
 
 proc newGame*(mapDir: string, mapName: string) =
-  reset()
+  # reset()
 
   echo "creating new game - loading map..."
   # gameState.map = loadMap(mapDir, mapName)
@@ -95,4 +95,5 @@ proc newGame*(mapDir: string, mapName: string) =
   # initMap()
 
 proc shutdown*() =
-  reset()
+  # reset()
+  discard

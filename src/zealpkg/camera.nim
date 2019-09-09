@@ -64,16 +64,16 @@ proc makeFrustum*(camera: Camera, frustum: var Frustum) =
 
   makeFrustum(camera.pos, camera.up, camera.front, aspectRatio, camFovRad, camZNearDist, 1000, frustum)
 
-proc tickFinishPerspective*(cam: var Camera) =
-  var
-    view: Mat4
-    target: Vec3
+# proc tickFinishPerspective*(cam: var Camera) =
+#   var
+#     view: Mat4
+#     target: Vec3
   
-  vec3Add(target, cam.pos, cam.front)
-  mtxLookAt(view, cam.pos, target, cam.up)
-  setViewTransform(view)
+#   vec3Add(target, cam.pos, cam.front)
+#   mtxLookAt(view, cam.pos, target, cam.up)
+#   #setViewTransform(view)
 
-  cam.prevFrameTs = sdl.getTicks()
+#   cam.prevFrameTs = sdl.getTicks()
 
 
 proc moveWithinBounds(cam: var Camera) =

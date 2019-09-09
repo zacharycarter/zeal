@@ -44,25 +44,25 @@ proc aabbForChunk(map: Map, chunkPos: ChunkPos, outChunkAabb: var AABB) =
   assert(outChunkAabb.yMax >= outChunkAabb.yMin)
   assert(outChunkAabb.zMax >= outChunkAabb.zMin)
 
-proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
-  if map == nil:
-    return
+# proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
+#   if map == nil:
+#     return
 
-  var frustum: Frustum
-  makeFrustum(cam, frustum)
+#   var frustum: Frustum
+#   makeFrustum(cam, frustum)
 
-  for r in 0 ..< map[].height:
-   for c in 0 ..< map[].width:
-      var chunkAabb: AABB
-      aabbForChunk(map, ChunkPos(r: r, c: c), chunkAabb)
+#   for r in 0 ..< map[].height:
+#    for c in 0 ..< map[].width:
+#       var chunkAabb: AABB
+#       aabbForChunk(map, ChunkPos(r: r, c: c), chunkAabb)
 
-      if not frustumAABBIntersectionExact(frustum, chunkAabb):
-        continue
+#       if not frustumAABBIntersectionExact(frustum, chunkAabb):
+#         continue
 
-      var chunkModel: Mat4
-      let chunk = map[].chunks[r * map.width + c]
-      modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
-      draw(map[].renderData, chunk.renderData, chunkModel)
+#       var chunkModel: Mat4
+#       let chunk = map[].chunks[r * map.width + c]
+#       modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
+#       draw(map[].renderData, chunk.renderData, chunkModel)
 
 proc centerAtOrigin*(map: Map) =
   if map == nil:
@@ -131,38 +131,38 @@ proc readMaterial(stream: FileStream, texName: var string) =
   texName = splits[2]
 
 
-proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
-  var m = new Map
-  m[].width = header.numCols
-  m[].height = header.numRows
-  m[].pos = [0.0'f32, 0.0, 0.0]
+# proc initMap*(header: MapHeader, basePath: string, stream: FileStream): Map =
+#   var m = new Map
+#   m[].width = header.numCols
+#   m[].height = header.numRows
+#   m[].pos = [0.0'f32, 0.0, 0.0]
 
-  m[].minimapVres = [1280, 720]
-  m[].minimapCenterPos = [1280, 720 - 192]
-  m[].minimapSz = 256
+#   m[].minimapVres = [1280, 720]
+#   m[].minimapCenterPos = [1280, 720 - 192]
+#   m[].minimapSz = 256
 
-  var texnames = newSeq[string](header.numMaterials)
+#   var texnames = newSeq[string](header.numMaterials)
   
-  for i in 0 ..< header.numMaterials:
-    readMaterial(stream, texNames[i])
+#   for i in 0 ..< header.numMaterials:
+#     readMaterial(stream, texNames[i])
 
-  m[].renderData.textures.handle = createTextureArrayMap(texnames) 
+#   m[].renderData.textures.handle = createTextureArrayMap(texnames) 
 
-  m[].renderData.sTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_SAMPLER, 11)
+#   m[].renderData.sTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_SAMPLER, 11)
 
-  let numChunks = header.numRows * header.numCols
-  m[].chunks.setLen(numChunks)
-  for i in 0 ..< numChunks:
-    readChunk(stream, addr(m[].chunks[0]) + i)
+#   let numChunks = header.numRows * header.numCols
+#   m[].chunks.setLen(numChunks)
+#   for i in 0 ..< numChunks:
+#     readChunk(stream, addr(m[].chunks[0]) + i)
 
-    initRenderDataFromTiles(m[].chunks[i].tiles, tilesPerChunkWidth, tilesPerChunkHeight, m[].chunks[i].renderData)
+#     initRenderDataFromTiles(m[].chunks[i].tiles, tilesPerChunkWidth, tilesPerChunkHeight, m[].chunks[i].renderData)
 
-  patchAdjacencyInfo(m)
+#   patchAdjacencyInfo(m)
 
-  for i in 0 ..< numChunks:
-    fillVBuff(m[].chunks[i].renderData, m[].chunks[i].renderData.mesh.vBuff)
+#   for i in 0 ..< numChunks:
+#     fillVBuff(m[].chunks[i].renderData, m[].chunks[i].renderData.mesh.vBuff)
   
-  return m
+#   return m
 
 proc destroy*(map: Map) =
   if map == nil:
