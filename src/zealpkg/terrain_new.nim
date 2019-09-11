@@ -257,9 +257,21 @@ var
 
 var 
   dMap: ptr ImageContainer
-  dispMap: DisplacementMap = DisplacementMap(filePath: "assets/map_textures/dmap.png", scale: 0.45'f32)
+  tex: ptr ImageContainer
+  tex1: ptr ImageContainer
+  tex2: ptr ImageContainer
+  tex3: ptr ImageContainer
+  dispMap: DisplacementMap = DisplacementMap(filePath: "assets/map_textures/height.png", scale: 0.45'f32)
   textures: array[tkCount, bgfx_texture_handle_t]
+  splatMapTexture: bgfx_texture_handle_t
+  grassTexture: bgfx_texture_handle_t
+  cliffsTexture: bgfx_texture_handle_t
+  snowyGrassTexture: bgfx_texture_handle_t
   samplers: array[skSamplerCount, bgfx_uniform_handle_t]
+  splatMapUniform: bgfx_uniform_handle_t
+  grassUniform: bgfx_uniform_handle_t
+  cliffsUniform: bgfx_uniform_handle_t
+  snowyGrassUniform: bgfx_uniform_handle_t
   uniforms: Uniforms
   bufferSubd: array[2, bgfx_dynamic_index_buffer_handle_t]
   bufferCulledSubd: bgfx_dynamic_index_buffer_handle_t
@@ -400,6 +412,54 @@ proc loadTextures() =
   loadDisplacementMapTexture()
   loadSubdivisionMapTexture()
 
+  tex = bimgLoad("assets/map_textures/splat.png", BGFX_TEXTURE_FORMAT_RGBA8)
+
+  splatMapTexture = bgfx_create_texture_2d(
+    uint16(tex.m_width), 
+    uint16(tex.m_height), 
+    false, 
+    1, 
+    BGFX_TEXTURE_FORMAT_RGBA8, 
+    BGFX_TEXTURE_NONE, 
+    bgfx_make_ref(tex.m_data, tex.m_size)
+  )
+
+  tex1 = bimgLoad("assets/map_textures/grass.png", BGFX_TEXTURE_FORMAT_RGBA8)
+
+  grassTexture = bgfx_create_texture_2d(
+    uint16(tex1.m_width), 
+    uint16(tex1.m_height), 
+    false, 
+    1, 
+    BGFX_TEXTURE_FORMAT_RGBA8, 
+    BGFX_TEXTURE_NONE, 
+    bgfx_make_ref(tex1.m_data, tex1.m_size)
+  )
+
+  tex2 = bimgLoad("assets/map_textures/cliffs.png", BGFX_TEXTURE_FORMAT_RGBA8)
+
+  cliffsTexture = bgfx_create_texture_2d(
+    uint16(tex2.m_width), 
+    uint16(tex2.m_height), 
+    false, 
+    1, 
+    BGFX_TEXTURE_FORMAT_RGBA8, 
+    BGFX_TEXTURE_NONE, 
+    bgfx_make_ref(tex2.m_data, tex2.m_size)
+  )
+
+  tex3 = bimgLoad("assets/map_textures/snow.png", BGFX_TEXTURE_FORMAT_RGB8)
+
+  snowyGrassTexture = bgfx_create_texture_2d(
+    uint16(tex3.m_width), 
+    uint16(tex3.m_height), 
+    false, 
+    1, 
+    BGFX_TEXTURE_FORMAT_RGB8, 
+    BGFX_TEXTURE_NONE, 
+    bgfx_make_ref(tex3.m_data, tex3.m_size)
+  )
+
 proc loadBuffers() =
   loadSubdivisionBuffers()
   loadGeometryBuffers()
@@ -408,6 +468,11 @@ proc loadBuffers() =
 proc loadPrograms() =
   samplers[skDmapSampler] = bgfx_create_uniform("u_DmapSampler", BGFX_UNIFORM_TYPE_SAMPLER, 1)
   samplers[skSmapSampler] = bgfx_create_uniform("u_SmapSampler", BGFX_UNIFORM_TYPE_SAMPLER, 1)
+
+  splatMapUniform = bgfx_create_uniform("u_SplatMapSampler", BGFX_UNIFORM_TYPE_SAMPLER, 1)
+  grassUniform = bgfx_create_uniform("u_GrassSampler", BGFX_UNIFORM_TYPE_SAMPLER, 1)
+  cliffsUniform = bgfx_create_uniform("u_CliffsSampler", BGFX_UNIFORM_TYPE_SAMPLER, 1)
+  snowyGrassUniform = bgfx_create_uniform("u_SnowyGrassSampler", BGFX_UNIFORM_TYPE_SAMPLER, 1)
 
   initUniforms()
 
@@ -420,29 +485,7 @@ proc configureUniforms() =
   uniforms.data.value.dmapFactor = dispMap.scale
 
 proc submitUniforms() =
-  # UniformValue = object
-  #   dmapFactor: float32
-  #   lodFactor: float32
-  #   cull: float32
-  #   freeze: float32
-
-  #   gpuSubd: float32
-  #   padding0: float32
-  #   padding1: float32
-  #   padding2: float32
-  var values = [
-    dispMap.scale,
-    2.0'f32 * tan(degToRad(fovY) / 2.0'f32) / 1280 * float32(1 shl int(uniforms.data.value.gpuSubd)) * primitivePixelLengthTarget,
-    1.0'f32,
-    0.0'f32,
-    3.0'f32,
-    0.0'f32,
-    0.0'f32,
-    0.0'f32
-  ]
-  echo values
-  bgfx_set_uniform(uniforms.handle, cast[pointer](addr values[0]), NUM_VEC_4)
-  # bgfx_set_uniform(uniforms.handle, cast[pointer](addr uniforms.data.params[0]), NUM_VEC_4)
+  bgfx_set_uniform(uniforms.handle, cast[pointer](addr uniforms.data.params[0]), NUM_VEC_4)
 
 proc updateNewTerrain*() =
   uniforms.data.value.cull = 1.0'f32
@@ -519,6 +562,10 @@ proc updateNewTerrain*() =
 
   bgfx_set_texture(0, samplers[skDmapSampler], textures[tkDmap], BGFX_SAMPLER_U_CLAMP or BGFX_SAMPLER_V_CLAMP)
   bgfx_set_texture(1, samplers[skSmapSampler], textures[tkSmap], BGFX_SAMPLER_MIN_ANISOTROPIC or BGFX_SAMPLER_MAG_ANISOTROPIC)
+  bgfx_set_texture(9, splatMapUniform, splatMapTexture, high(uint32))
+  bgfx_set_texture(10, grassUniform, grassTexture, high(uint32))
+  bgfx_set_texture(11, cliffsUniform, cliffsTexture, high(uint32))
+  bgfx_set_texture(12, snowyGrassUniform, snowyGrassTexture, high(uint32))
 
   discard bgfx_set_transform(addr model[0], 1)
   bgfx_set_vertex_buffer(0, instancedGeometryVertices, 0, uint32.high)
@@ -527,7 +574,7 @@ proc updateNewTerrain*() =
   bgfx_set_compute_vertex_buffer(3, geometryVertices, BGFX_ACCESS_READ)
   bgfx_set_compute_index_buffer(4, geometryIndices, BGFX_ACCESS_READ)
   bgfx_set_state(BGFX_STATE_WRITE_RGB or BGFX_STATE_WRITE_Z or BGFX_STATE_DEPTH_TEST_LESS, 0)
-  
+
   submitUniforms()
 
   bgfx_submit_indirect(1, programHandles["terrainRender"], dispatchIndirect, 0, 1, 0, true)
@@ -541,8 +588,8 @@ proc initNewTerrain*() =
   bgfx_set_view_clear(1, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0'f32, 0)
 
   createCamera()
-  setCameraPosition([0.0'f32, 0.5, 0.0])
-  setCameraVerticalAngle(0)
+  setCameraPosition([0.0'f32, 1.0, 1.5])
+  setCameraVerticalAngle(-25)
 
   loadPrograms()
   loadBuffers()
