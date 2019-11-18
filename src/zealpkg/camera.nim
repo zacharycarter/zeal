@@ -7,11 +7,11 @@ type
   BoundingBox* = object
     x, z: float32
     w, h: float32
-  
+
   Camera* = object
     speed: float32
     sensitivity: float32
-    
+
     pos*: Vec3
     front: Vec3
     up: Vec3
@@ -21,16 +21,17 @@ type
 
     prevFrameTs: uint32
 
-    # When 'bounded' is true, the camera position must 
+    # When 'bounded' is true, the camera position must
     # always be within the 'bounds' box */
     bounded: bool
     bounds: BoundingBox
 
 proc posInBounds(camera: Camera): bool =
   return camera.pos[0] <= camera.bounds.x and camera.pos[0] >= (camera.bounds.x - camera.bounds.w) and
-         camera.pos[2] >= camera.bounds.z and (camera.pos[2] <= camera.bounds.z + camera.bounds.h)
+         camera.pos[2] >= camera.bounds.z and (camera.pos[2] <=
+             camera.bounds.z + camera.bounds.h)
 
-proc getYaw*(camera: Camera): float32 = 
+proc getYaw*(camera: Camera): float32 =
   result = camera.yaw
 
 proc setSpeed*(camera: var Camera, speed: float32) =
@@ -62,18 +63,19 @@ proc setPosition*(camera: var Camera, position: Vec3) =
 proc makeFrustum*(camera: Camera, frustum: var Frustum) =
   let aspectRatio = 1280.0'f32 / 720.0'f32
 
-  makeFrustum(camera.pos, camera.up, camera.front, aspectRatio, camFovRad, camZNearDist, 1000, frustum)
+  makeFrustum(camera.pos, camera.up, camera.front, aspectRatio, camFovRad,
+      camZNearDist, 1000, frustum)
 
-# proc tickFinishPerspective*(cam: var Camera) =
-#   var
-#     view: Mat4
-#     target: Vec3
-  
-#   vec3Add(target, cam.pos, cam.front)
-#   mtxLookAt(view, cam.pos, target, cam.up)
-#   #setViewTransform(view)
+proc tickFinishPerspective*(cam: var Camera) =
+  var
+    view: Mat4
+    target: Vec3
 
-#   cam.prevFrameTs = sdl.getTicks()
+  vec3Add(target, cam.pos, cam.front)
+  mtxLookAt(view, cam.pos, target, cam.up)
+  setViewTransform(view)
+
+  cam.prevFrameTs = sdl.getTicks()
 
 
 proc moveWithinBounds(cam: var Camera) =
@@ -87,14 +89,14 @@ proc moveDirectionTick*(cam: var Camera, dir: var Vec3) =
   var
     tDelta: uint32
     vDelta: Vec3
-  
+
   if cam.prevFrameTs == 0:
     cam.prevFrameTs = sdl.getTicks()
-  
+
   let mag = sqrt(pow(dir[0], 2) + pow(dir[1], 2) + pow(dir[2], 2))
   if mag == 0.0:
     return
-  
+
   vec3Norm(dir, dir)
 
   let curr = sdl.getTicks()
@@ -105,4 +107,3 @@ proc moveDirectionTick*(cam: var Camera, dir: var Vec3) =
 
   if cam.bounded: moveWithinBounds(cam)
   assert(not cam.bounded or posInBounds(cam))
-

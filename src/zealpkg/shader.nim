@@ -8,65 +8,40 @@ type
     fragPath: string
     computePath: string
 
-var 
+var
   shaders: seq[ShaderResource] = @[
-    # ShaderResource(
-    #   name: "basic",
-    #   vertexPath: "vertex/basic_vs.bin",
-    #   fragPath: "fragment/basic_fs.bin"
-    # ),
-    # ShaderResource(
-    #   name: "terrain",
-    #   vertexPath: "vertex/terrain_vs.bin",
-    #   fragPath: "fragment/terrain_fs.bin"
-    # ),
     ShaderResource(
-      name: "terrainRender",
-      vertexPath: "vertex/terrain_render_vs.bin",
-      fragPath: "fragment/terrain_render_fs.bin"
+      name: "basic",
+      vertexPath: "vertex/basic_vs.bin",
+      fragPath: "fragment/basic_fs.bin"
     ),
     ShaderResource(
-      name: "terrainRenderNormal",
-      vertexPath: "vertex/terrain_render_vs.bin",
-      fragPath: "fragment/terrain_render_normal_fs.bin"
-    ),
-    ShaderResource(
-      name: "terrainLOD",
-      computePath: "compute/terrain_lod_cs.bin"
-    ),
-    ShaderResource(
-      name: "terrainUpdateIndirect",
-      computePath: "compute/terrain_update_indirect_cs.bin"
-    ),
-    ShaderResource(
-      name: "terrainUpdateDraw",
-      computePath: "compute/terrain_update_draw_cs.bin"
-    ),
-    ShaderResource(
-      name: "terrainInitIndirect",
-      computePath: "compute/terrain_init_cs.bin"
+      name: "terrain",
+      vertexPath: "vertex/terrain_vs.bin",
+      fragPath: "fragment/terrain_fs.bin"
     )
   ]
   programHandles*: Table[string, bgfx_program_handle_t]
 
-proc loadShader(basePath: string, filePath: string, shaderName: string): bgfx_shader_handle_t =
+proc loadShader(basePath: string, filePath: string,
+    shaderName: string): bgfx_shader_handle_t =
   var shaderPath: string
   case bgfx_get_renderer_type()
   of BGFX_RENDERER_TYPE_DIRECT3D11:
     shaderPath = "$1/shaders/dx11/$2" % [basePath, filePath]
   else:
     discard
-  
+
   let stream = sdl.rwFromFile(shaderPath, "r")
   if stream == nil:
     return BGFX_INVALID_HANDLE
-  
+
   let size = size(stream)
   var ret = alloc(size + 1)
   if ret == nil:
     discard close(stream)
     return BGFX_INVALID_HANDLE
-  
+
   var o = ret
   var read, readTotal = 0'i64
   while readTotal < size:
@@ -74,12 +49,12 @@ proc loadShader(basePath: string, filePath: string, shaderName: string): bgfx_sh
 
     if read == 0:
       break
-    
+
     readTotal += read
     o = cast[pointer](cast[int64](o) + read)
-  
+
   discard close(stream)
-  
+
   if readTotal != size:
     return BGFX_INVALID_HANDLE
 
@@ -90,9 +65,12 @@ proc loadShader(basePath: string, filePath: string, shaderName: string): bgfx_sh
 
 proc init*(basePath: string) =
   for shader in shaders:
-    let vsh = if shader.vertexPath.len > 0: loadShader(basePath, shader.vertexPath, shader.name) else: BGFX_INVALID_HANDLE
-    let fsh = if shader.fragPath.len > 0: loadShader(basePath, shader.fragPath, shader.name) else: BGFX_INVALID_HANDLE
-    let csh = if shader.computePath.len > 0: loadShader(basePath, shader.computePath, shader.name) else: BGFX_INVALID_HANDLE
+    let vsh = if shader.vertexPath.len > 0: loadShader(basePath,
+        shader.vertexPath, shader.name) else: BGFX_INVALID_HANDLE
+    let fsh = if shader.fragPath.len > 0: loadShader(basePath, shader.fragPath,
+        shader.name) else: BGFX_INVALID_HANDLE
+    let csh = if shader.computePath.len > 0: loadShader(basePath,
+        shader.computePath, shader.name) else: BGFX_INVALID_HANDLE
 
     if csh == BGFX_INVALID_HANDLE:
       programHandles.add(shader.name, bgfx_create_program(vsh, fsh, true))

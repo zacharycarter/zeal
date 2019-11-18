@@ -15,22 +15,22 @@ proc parseMapHeader(stream: FileStream, mapHeader: var MapHeader) =
   except:
     raise newException(MapParsingError, "failed parsing map header")
 
-# proc loadMapFromStream(basePath: string): Map =
-#   var 
-#     header: MapHeader
-#     stream: FileStream
+proc loadMapFromStream(basePath: string): Map =
+  var
+    header: MapHeader
+    stream: FileStream
 
-#   stream = openFileStream(basePath)
-  
-#   try:
-#     parseMapHeader(stream, header)
-#     result = initMap(header, basePath, stream)
-#   except:
-#     raise
-#   finally:
-#     stream.close()
+  stream = openFileStream(basePath)
 
-# proc loadMap*(mapDir: string, mapName: string): Map =
-#   let basePath = "$1/$2" % [mapDir, mapName]
-#   result = loadMapFromStream(basePath)
-#   return result
+  try:
+    parseMapHeader(stream, header)
+    result = initMap(header, basePath, stream)
+  except:
+    raise
+  finally:
+    stream.close()
+
+proc loadMap*(mapDir: string, mapName: string): Map =
+  let basePath = "$1/$2" % [mapDir, mapName]
+  result = loadMapFromStream(basePath)
+  return result

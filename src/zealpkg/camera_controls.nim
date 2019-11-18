@@ -31,7 +31,7 @@ type
 var camCtx: CameraCtx
 
 proc rtsOnMouseMove(unused: pointer, eventArg: pointer) =
-  var 
+  var
     ctx = camCtx.activeCtx.rts
     mouseX, mouseY: cint
     width, height: cint
@@ -39,35 +39,36 @@ proc rtsOnMouseMove(unused: pointer, eventArg: pointer) =
   let e = cast[sdl.MouseMotionEventPtr](eventArg)
   sdl.getMouseState(mouseX, mouseY)
 
-  ctx.moveUp = (mouseY == 0)
-  ctx.moveDown = (mouseY == 720 - 1)
-  ctx.moveLeft = (mouseX == 0)
-  ctx.moveRight = (mouseX == 1280 - 1)
+  camCtx.activeCtx.rts.moveUp = (mouseY == 0)
+  camCtx.activeCtx.rts.moveDown = (mouseY == 720 - 1)
+  camCtx.activeCtx.rts.moveLeft = (mouseX == 0)
+  camCtx.activeCtx.rts.moveRight = (mouseX == 1280 - 1)
 
 proc rtsOnMouseDown(unused: pointer, eventArg: pointer) =
   var ctx = camCtx.activeCtx.rts
 
   let e = cast[sdl.MouseButtonEventPtr](eventArg)
 
-  if ctx.moveUp or ctx.moveDown or ctx.moveLeft or ctx.moveRight:
+  if camCtx.activeCtx.rts.moveUp or camCtx.activeCtx.rts.moveDown or
+      camCtx.activeCtx.rts.moveLeft or camCtx.activeCtx.rts.moveRight:
     return
 
   if e.button == sdl.BUTTON_LEFT:
-    ctx.panDisabled = true
+    camCtx.activeCtx.rts.panDisabled = true
 
 proc rtsOnMouseUp(unused: pointer, eventArg: pointer) =
   var ctx = camCtx.activeCtx.rts
 
   let e = cast[sdl.MouseButtonEventPtr](eventArg)
-  
+
   if e.button == sdl.BUTTON_LEFT:
-    ctx.panDisabled = false
+    camCtx.activeCtx.rts.panDisabled = false
 
 proc rtsOnUpdateEnd(unused: pointer, eventArg: pointer) =
-  var 
+  var
     ctx = camCtx.activeCtx.rts
     cam = camCtx.active
-  
+
   let yaw = getYaw(cam)
 
   #
@@ -104,20 +105,20 @@ proc rtsOnUpdateEnd(unused: pointer, eventArg: pointer) =
     left = [1.0'f32 * sin(degToRad(yaw)), 0.0, 1.0 * cos(degToRad(yaw))]
     down = [-up[0], up[1], -up[2]]
     right = [-left[0], left[1], -left[2]]
-  
-  assert(not (ctx.moveLeft and ctx.moveRight))
-  assert(not (ctx.moveUp and ctx.moveDown))
+
+  assert(not (camCtx.activeCtx.rts.moveLeft and camCtx.activeCtx.rts.moveRight))
+  assert(not (camCtx.activeCtx.rts.moveUp and camCtx.activeCtx.rts.moveDown))
 
   var dir = [0.0'f32, 0.0, 0.0]
 
-  if not ctx.panDisabled:
-    if ctx.moveLeft: vec3Add(dir, left, dir)
-    if ctx.moveRight: vec3Add(dir, right, dir)
-    if ctx.moveUp: vec3Add(dir, up, dir)
-    if ctx.moveDown: vec3Add(dir, down, dir)
+  if not camCtx.activeCtx.rts.panDisabled:
+    if camCtx.activeCtx.rts.moveLeft: vec3Add(dir, left, dir)
+    if camCtx.activeCtx.rts.moveRight: vec3Add(dir, right, dir)
+    if camCtx.activeCtx.rts.moveUp: vec3Add(dir, up, dir)
+    if camCtx.activeCtx.rts.moveDown: vec3Add(dir, down, dir)
 
-  moveDirectionTick(cam, dir)
-  # tickFinishPerspective(cam)
+  moveDirectionTick(camCtx.active, dir)
+  tickFinishPerspective(camCtx.active)
 
 
 proc resetControls*() =
@@ -134,7 +135,8 @@ proc rtsControls*(camera: Camera) =
   globalRegister(EventKind(sdl.MouseMotion), rtsOnMouseMove, nil, int32(ssRunning))
   globalRegister(EventKind(sdl.MouseButtonDown), rtsOnMouseDown, nil, int32(ssRunning))
   globalRegister(EventKind(sdl.MouseButtonUp), rtsOnMouseUp, nil, int32(ssRunning))
-  globalRegister(ekUpdateEnd, rtsOnUpdateEnd, nil, int32(ssRunning.ord or ssPausedFull.ord or ssPausedUiRunning.ord))
+  globalRegister(ekUpdateEnd, rtsOnUpdateEnd, nil, int32(ssRunning.ord or
+      ssPausedFull.ord or ssPausedUiRunning.ord))
 
   camCtx.onMouseMove = rtsOnMouseMove
   camCtx.onMouseDown = rtsOnMouseDown

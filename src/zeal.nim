@@ -1,4 +1,5 @@
 import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl, nimLUA, ../lib/nuklear
+# import nimprof
 import zealpkg / [event, game, simulation, render, script, fpmath, script_ui]
 
 const
@@ -25,7 +26,7 @@ when defined(windows):
       window*: pointer
 
     SysWMInfoKindObj* = object
-      win*: SysWMMsgWinObj 
+      win*: SysWMMsgWinObj
 
 var
   window: sdl.WindowPtr
@@ -38,32 +39,33 @@ proc onUserQuit(user: pointer, event: pointer) =
   quit = true
 
 proc processSDLEvents() =
+  prevTickEvents.setLen(0)
   var event = sdl.default_event
 
   while sdl.pollEvent(event):
     prevTickEvents.add(event)
-    globalNotify(EventKind(event.kind), addr prevTickEvents[len(prevTickEvents) - 1], esEngine)
+    globalNotify(EventKind(event.kind), addr prevTickEvents[len(
+        prevTickEvents) - 1], esEngine)
     case event.kind
     of sdl.KeyDown:
       case event.key.keysym.scancode
       of SDL_SCANCODE_ESCAPE:
         quit = true
-        break
       of SDL_SCANCODE_F9:
         L.dofile("scripts/main.lua")
-        break
       else:
         discard
-      break
+    of sdl.UserEvent:
+      echo event.user.code
     else:
       discard
 
 proc linkSDL2BGFX() =
-  var pd: ptr bgfx_platform_data_t = createShared(bgfx_platform_data_t) 
+  var pd: ptr bgfx_platform_data_t = createShared(bgfx_platform_data_t)
   var info: sdl.WMinfo
   sdlVersion(info.version)
   assert sdl.getWMInfo(window, info)
-  
+
   case(info.subsystem):
     of SysWM_Windows:
       when defined(windows):
@@ -103,12 +105,13 @@ proc init(): bool =
     stderr.writeLine("Failed to initialize BGFX")
     return false
 
-  
+
   render.init(paramStr(1))
   event.init()
 
-  event.globalRegister(EventKind(sdl.QuitEvent), onUserQuit, nil, int32(ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
-  
+  event.globalRegister(EventKind(sdl.QuitEvent), onUserQuit, nil, int32(
+      ssRunning) or int32(ssPausedUiRunning) or int32(ssPausedFull))
+
   game.init()
 
   result = true
@@ -126,31 +129,31 @@ proc run*() =
   if not init():
     ret = QUIT_FAILURE
     quit(ret)
-  
-  # try:
-  #   L.bindObject(Window):
-  #     newWindow -> constructor
 
-  #   L.bindFunction("z"):
-  #     setAmbientLightColor
-  #     setEmitLightColor
-  #     setEmitLightPos
-  #     newGame
-
-    # L.dofile("scripts/main.lua")
   try:
-    newGame("assets/maps", "foo.zmap")
+    L.bindObject(Window):
+      newWindow -> constructor
+
+    L.bindFunction("z"):
+      setAmbientLightColor
+      setEmitLightColor
+      setEmitLightPos
+      newGame
+
+    L.dofile("scripts/main.lua")
+  # try:
+  #   newGame("assets/maps", "demo.zmap")
     while not quit:
       processSDLEvents()
-      # event.serviceQueue()
-      game.update()
-      # render()
+      event.serviceQueue()
+      # game.update()
+      render()
   except:
     echo getCurrentExceptionMsg()
   finally:
     # L.close()
     shutdown()
-  
+
   quit(ret)
 
 when isMainModule:
