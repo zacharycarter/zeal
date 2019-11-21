@@ -95,6 +95,15 @@ proc newGame*(mapDir: string, mapName: string) =
 
   initMap()
 
+  var
+    ambientLightColor = [1.0'f32, 1.0, 1.0]
+    emitLightPos = [1664.0'f32, 1024.0, 384.0]
+
+  render.setAmbientLightColor(ambientLightColor)
+  render.setEmitLightColor(ambientLightColor)
+  render.setEmitLightPos(emitLightPos)
+
+
 proc shutdown*() =
   reset()
   discard

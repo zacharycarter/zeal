@@ -1,11 +1,10 @@
 import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl, nimLUA, ../lib/nuklear
-# import nimprof
 import zealpkg / [event, game, simulation, render, script, fpmath, script_ui]
 
 const
   SDL_MAJOR_VERSION* = 2
   SDL_MINOR_VERSION* = 0
-  SDL_PATCHLEVEL* = 5
+  SDL_PATCHLEVEL* = 8
 
 type
   Foo* = object
@@ -30,7 +29,6 @@ when defined(windows):
 
 var
   window: sdl.WindowPtr
-  L = newNimLua()
 
 proc newWindow*(): Window =
   result
@@ -45,14 +43,12 @@ proc processSDLEvents() =
   while sdl.pollEvent(event):
     prevTickEvents.add(event)
     globalNotify(EventKind(event.kind), addr prevTickEvents[len(
-        prevTickEvents) - 1], esEngine)
+      prevTickEvents) - 1], esEngine)
     case event.kind
     of sdl.KeyDown:
       case event.key.keysym.scancode
       of SDL_SCANCODE_ESCAPE:
         quit = true
-      of SDL_SCANCODE_F9:
-        L.dofile("scripts/main.lua")
       else:
         discard
     of sdl.UserEvent:
@@ -124,29 +120,36 @@ proc shutdown() =
   sdl.quit()
 
 proc run*() =
-  var ret = QUIT_SUCCESS
+  var
+    deltaTime, accumulator = 0.0'f64
+    lastFrameTime = float64(sdl.getPerformanceCounter())
+    ret = QUIT_SUCCESS
 
   if not init():
     ret = QUIT_FAILURE
     quit(ret)
 
+  let
+    physDeltaTime = 1.0 / 60.0
+    slowestFrame = 1.0 / 15.0
+
   try:
-    L.bindObject(Window):
-      newWindow -> constructor
-
-    L.bindFunction("z"):
-      setAmbientLightColor
-      setEmitLightColor
-      setEmitLightPos
-      newGame
-
-    L.dofile("scripts/main.lua")
-  # try:
-  #   newGame("assets/maps", "demo.zmap")
+    newGame("assets/maps", "demo.zmap")
     while not quit:
-      processSDLEvents()
-      event.serviceQueue()
-      # game.update()
+      var currentFrameTime = float64(sdl.getPerformanceCounter())
+      deltaTime = float64(currentFrameTime - lastFrameTime) / float64(
+          sdl.getPerformanceFrequency())
+      lastFrameTime = currentFrameTime
+
+      if deltaTime > slowestFrame:
+        deltaTime = slowestFrame
+
+      accumulator += deltaTime
+      while accumulator >= physDeltaTime:
+        processSDLEvents()
+        event.serviceQueue()
+        # game.update()
+        accumulator -= physDeltaTime
       render()
   except:
     echo getCurrentExceptionMsg()

@@ -58,8 +58,8 @@ proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
       var chunkAabb: AABB
       aabbForChunk(map, ChunkPos(r: r, c: c), chunkAabb)
 
-      if not frustumAABBIntersectionExact(frustum, chunkAabb):
-        continue
+      # if not frustumAABBIntersectionExact(frustum, chunkAabb):
+      #   continue
 
       var chunkModel: Mat4
       let chunk = map.chunks[r * map.width + c]
@@ -79,7 +79,6 @@ proc centerAtOrigin*(map: Map) =
 proc patchAdjacencyInfo(map: Map) =
   for r in 0 ..< map.height:
     for c in 0 ..< map.width:
-      var chunkRenderData = map.chunks[r * map.width + c].renderData
       for tileR in 0 ..< tilesPerChunkHeight:
         for tileC in 0 ..< tilesPerChunkHeight:
           let
@@ -87,9 +86,9 @@ proc patchAdjacencyInfo(map: Map) =
             tile = map.chunks[r * map.width + c].tiles[tileR *
                 tilesPerChunkWidth + tileC]
 
-          patchTileVertsBlend(chunkRenderData, map, desc)
+          patchTileVertsBlend(map.chunks[r * map.width + c].renderData, map, desc)
           if tile.blendNormals:
-            patchTileVertsSmooth(chunkRenderData, map, desc)
+            patchTileVertsSmooth(map.chunks[r * map.width + c].renderData, map, desc)
 
 
 proc parseTile(str: string, tile: ptr Tile) =
@@ -99,8 +98,8 @@ proc parseTile(str: string, tile: ptr Tile) =
   tile[].kind = TileKind(parseHexInt($str[0]))
   tile[].baseHeight = (if str[1] == '-': -1 else: 1) * (10 * a2i(str[2]) + a2i(str[3]))
   tile[].rampHeight = (10 * a2i(str[4]) + a2i(str[5]))
-  tile[].topMatIdx = int16((100 * a2i(str[6]) + 10 * a2i(str[7]) + a2i(str[8])))
-  tile[].sidesMatIdx = int16((100 * a2i(str[9]) + 10 * a2i(str[10]) + a2i(str[11])))
+  tile[].topMatIdx = int32((100 * a2i(str[6]) + 10 * a2i(str[7]) + a2i(str[8])))
+  tile[].sidesMatIdx = int32((100 * a2i(str[9]) + 10 * a2i(str[10]) + a2i(str[11])))
   tile[].pathable = bool(a2i(str[12]))
   tile[].blendMode = BlendMode(a2i(str[13]))
   tile[].blendNormals = bool(a2i(str[14]))

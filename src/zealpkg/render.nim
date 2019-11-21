@@ -3,7 +3,7 @@ import bgfxdotnim, sdl2 as sdl, shader, mesh, material, tables, texture, vertex,
 const
   vertsPerSideFace* = 6
   vertsPerTopFace* = 24
-  vertsPerTile* = 5 * vertsPerSideFace + vertsPerTopFace
+  vertsPerTile* = 4 * vertsPerSideFace + vertsPerTopFace
 
 type
   RenderPass* = enum
@@ -58,8 +58,9 @@ proc draw*(mapRenderData: MapRenderData, renderData: RenderData,
   bgfx_set_texture(0, mapRenderData.sTexColor, mapRenderData.textures.handle,
       high(uint32))
 
-  bgfx_set_state(0'u64 or BGFX_STATE_WRITE_RGB or BGFX_STATE_WRITE_Z or
-      BGFX_STATE_DEPTH_TEST_LESS or BGFX_STATE_CULL_CCW, 0)
+  bgfx_set_state(0'u64 or BGFX_STATE_WRITE_RGB or
+    BGFX_STATE_WRITE_Z or
+    BGFX_STATE_DEPTH_TEST_LESS or BGFX_STATE_CULL_CCW, 0)
 
   bgfx_submit(0, renderData.shaderProgram, 0, false)
 
@@ -78,11 +79,11 @@ proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Verte
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_NORMAL, 3,
       BGFX_ATTRIB_TYPE_FLOAT, false, false)
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD2, 1,
-      BGFX_ATTRIB_TYPE_INT16, false, false)
+      BGFX_ATTRIB_TYPE_FLOAT, false, false)
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD3, 1,
-      BGFX_ATTRIB_TYPE_INT16, false, false)
+      BGFX_ATTRIB_TYPE_FLOAT, false, false)
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD4, 4,
-      BGFX_ATTRIB_TYPE_INT16, false, false)
+      BGFX_ATTRIB_TYPE_FLOAT, false, false)
   bgfx_vertex_layout_end(addr renderData.mesh.vLayout)
   # bgfx_vertex_decl_begin(addr renderData.mesh.vDecl, rendererType)
   # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_POSITION, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false)
@@ -136,9 +137,11 @@ proc init*(basePath: string) =
   rendererType = bgfx_get_renderer_type()
   rendererCaps = bgfx_get_caps()
 
+  echo repr rendererCaps
+
   shader.init(basePath)
 
-  # bgfx_set_debug(BGFX_DEBUG_WIREFRAME)
+  # bgfx_set_debug(BGFX_DEBUG_STATS)
   bgfx_reset(1280, 720, BGFX_RESET_VSYNC, BGFX_TEXTURE_FORMAT_COUNT)
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 
@@ -146,14 +149,6 @@ proc init*(basePath: string) =
   uEmitLightColor = bgfx_create_uniform("light_color", BGFX_UNIFORM_TYPE_VEC4, 1)
   uEmitLightPos = bgfx_create_uniform("light_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
   uViewPos = bgfx_create_uniform("view_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
-
-
-  # var ambientLightColor = [1.0'f32, 1.0, 1.0, 0.0]
-  # var emitLightPos = [1664.0'f32, 1024.0, 384.0]
-
-  # bgfx_set_uniform(m[].renderData.uAmbientColor, addr ambientLightColor[0], 1)
-  # bgfx_set_uniform(m[].renderData.uLightColor, addr ambientLightColor[0], 1)
-  # bgfx_set_uniform(m[].renderData.uLightPos, addr emitLightPos[0], 1)
 
 proc shutdown*() =
   bgfx_destroy_uniform(uAmbientColor)
