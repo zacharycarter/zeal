@@ -612,14 +612,19 @@ float2 texture2DBc5(BgfxSampler2D _sampler, float2 _uv)
 {
 return bgfxTexture2D(_sampler, _uv).xy;
 }
-Output main( float3 a_normal : NORMAL , float3 a_position : POSITION , float2 a_texcoord0 : TEXCOORD0 , float a_texcoord2 : TEXCOORD2 , float a_texcoord3 : TEXCOORD3 , int4 a_texcoord4 : TEXCOORD4) { Output _varying_; _varying_.v_adjacentMatIndices; _varying_.v_blendMode; _varying_.v_materialID; _varying_.v_normal; _varying_.v_texcoord0; _varying_.v_worldPos;
+Output main( float3 a_normal : NORMAL , float3 a_position : POSITION , float2 a_texcoord0 : TEXCOORD0 , float a_texcoord2 : TEXCOORD2 , float a_texcoord3 : TEXCOORD3 , int4 a_texcoord4 : TEXCOORD4 , int4 a_texcoord5 : TEXCOORD5) { Output _varying_; _varying_.v_adjacentMatIndices; _varying_.v_blendMode; _varying_.v_materialID; _varying_.v_normal; _varying_.v_texcoord0; _varying_.v_worldPos;
 {
 _varying_.v_texcoord0 = a_texcoord0;
 _varying_.v_worldPos = mul(u_model[0], float4(a_position, 1.0) ).xyz;
 _varying_.v_materialID = a_texcoord2;
 _varying_.v_normal = normalize(mul(u_model[0], float4(a_normal.xyz, 0.0) ).xyz);
 _varying_.v_blendMode = a_texcoord3;
-_varying_.v_adjacentMatIndices = a_texcoord4;
+_varying_.v_adjacentMatIndices = int4(
+(a_texcoord4.y << 16) | (a_texcoord4.x & 0xFFFF),
+(a_texcoord4.w << 16) | (a_texcoord4.z & 0xFFFF),
+(a_texcoord5.y << 16) | (a_texcoord5.x & 0xFFFF),
+(a_texcoord5.w << 16) | (a_texcoord5.z & 0xFFFF)
+);
 _varying_.gl_Position = mul(u_modelViewProj, float4(a_position, 1.0) );
 } return _varying_;
 }

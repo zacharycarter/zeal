@@ -522,10 +522,10 @@ proc tileMatIndices(tileAdjInfo: ptr TileAdjInfo, topTriLeftAligned: var bool) =
     tileAdjInfo[].rightCenterIdx = triMats[0]
 
 proc optimalBlendMode(vert: ptr Vertex): BlendMode =
-  if sameIndices32(uint32(vert[].adjacentMatIndices[0])) and
-    sameIndices32(uint32(vert[].adjacentMatIndices[1])) and
+  if sameIndices32(int32(vert[].adjacentMatIndices[0].idx)) and
+    sameIndices32(int32(vert[].adjacentMatIndices[1].idx)) and
     vert[].adjacentMatIndices[0] == vert[].adjacentMatIndices[1] and
-    (uint32(vert[].adjacentMatIndices[0]) and 0xf) == uint32(vert[].materialIdx):
+    (int32(vert[].adjacentMatIndices[0].idx) and 0xf) == int32(vert[].materialIdx):
     result = bmNoBlend
   else:
     result = BlendMode(int32(vert[].blendMode))
@@ -778,19 +778,19 @@ proc patchTileVertsBlend*(chunkRenderData: var RenderData, map: Map,
     ]
 
   for i in 0 ..< 2:
-    southProvoking[i][].adjacentMatIndices[0] =
+    southProvoking[i][].adjacentMatIndices[0].idx =
       indicesMask32(bot.topLeftMask, botLeft.topRightMask,
           left.botRightMask, curr.botLeftMask)
-    southProvoking[i][].adjacentMatIndices[1] =
+    southProvoking[i][].adjacentMatIndices[1].idx =
       indicesMask32(botRight.topLeftMask, bot.topRightMask,
           curr.botRightMask, right.botLeftMask)
     southProvoking[i][].blendMode = float32(optimalBlendmode(southProvoking[i]))
 
   for i in 0 ..< 2:
-    northProvoking[i][].adjacentMatIndices[0] =
+    northProvoking[i][].adjacentMatIndices[0].idx =
       indicesMask32(curr.topLeftMask, left.topRightMask,
           topLeft.botRightMask, top.botLeftMask)
-    northProvoking[i][].adjacentMatIndices[1] =
+    northProvoking[i][].adjacentMatIndices[1].idx =
       indicesMask32(right.topLeftMask, curr.topRightMask,
           top.botRightMask, topRight.botLeftMask)
     northProvoking[i][].blendMode = float32(optimalBlendmode(northProvoking[i]))
@@ -824,8 +824,8 @@ proc patchTileVertsBlend*(chunkRenderData: var RenderData, map: Map,
   ]
 
   for i in 0 ..< len(provoking):
-    provoking[i][].adjacentMatIndices[2] = adjCenterMask
-    provoking[i][].adjacentMatIndices[3] = int32(curr.middleMask)
+    provoking[i][].adjacentMatIndices[2].idx = adjCenterMask
+    provoking[i][].adjacentMatIndices[3].idx = int32(curr.middleMask)
 
 proc patchTileVertsSmooth*(chunkRenderData: var RenderData, map: Map,
     tile: TileDesc) =

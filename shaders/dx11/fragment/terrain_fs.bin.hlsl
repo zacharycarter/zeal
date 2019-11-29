@@ -658,31 +658,31 @@ bool left = (v_texcoord0.x < v_texcoord0.y) && (1.0 - v_texcoord0.x > v_texcoord
 bool right = (v_texcoord0.x > v_texcoord0.y) && (1.0 - v_texcoord0.x < v_texcoord0.y);
 bool left_half = v_texcoord0.x < 0.5f;
 bool bot_half = v_texcoord0.y < 0.5f;
-float4 color1 = mixed_texture_val(v_adjacentMatIndices[0], v_texcoord0);
-float4 color2 = mixed_texture_val(v_adjacentMatIndices[1], v_texcoord0);
+float4 color1 = mixed_texture_val(v_adjacentMatIndices.x, v_texcoord0);
+float4 color2 = mixed_texture_val(v_adjacentMatIndices.y, v_texcoord0);
 float4 tile_color = mix(
-texture_val((v_adjacentMatIndices[3] >> 0) & 0xf, v_texcoord0),
-texture_val((v_adjacentMatIndices[3] >> 4) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.w >> 0) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.w >> 4) & 0xf, v_texcoord0),
 0.5f
 );
 float4 left_center_color = mix(
-texture_val((v_adjacentMatIndices[2] >> 0) & 0xf, v_texcoord0),
-texture_val((v_adjacentMatIndices[2] >> 4) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 0) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 4) & 0xf, v_texcoord0),
 0.5f
 );
 float4 bot_center_color = mix(
-texture_val((v_adjacentMatIndices[2] >> 8) & 0xf, v_texcoord0),
-texture_val((v_adjacentMatIndices[2] >> 12) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 8) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 12) & 0xf, v_texcoord0),
 0.5f
 );
 float4 right_center_color = mix(
-texture_val((v_adjacentMatIndices[2] >> 16) & 0xf, v_texcoord0),
-texture_val((v_adjacentMatIndices[2] >> 20) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 16) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 20) & 0xf, v_texcoord0),
 0.5f
 );
 float4 top_center_color = mix(
-texture_val((v_adjacentMatIndices[2] >> 24) & 0xf, v_texcoord0),
-texture_val((v_adjacentMatIndices[2] >> 28) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 24) & 0xf, v_texcoord0),
+texture_val((v_adjacentMatIndices.z >> 28) & 0xf, v_texcoord0),
 0.5f
 );
 if (top)

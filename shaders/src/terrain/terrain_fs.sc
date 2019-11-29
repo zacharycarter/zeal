@@ -133,32 +133,32 @@ void main()
             /***********************************************************************
             * Set the fragment texture color
             **********************************************************************/
-            vec4 color1 = mixed_texture_val(v_adjacentMatIndices[0], v_texcoord0);
-            vec4 color2 = mixed_texture_val(v_adjacentMatIndices[1], v_texcoord0);
+            vec4 color1 = mixed_texture_val(v_adjacentMatIndices.x, v_texcoord0);
+            vec4 color2 = mixed_texture_val(v_adjacentMatIndices.y, v_texcoord0);
 
             vec4 tile_color = mix(
-                texture_val((v_adjacentMatIndices[3] >> 0) & 0xf, v_texcoord0), 
-                texture_val((v_adjacentMatIndices[3] >> 4) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.w >> 0) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.w >> 4) & 0xf, v_texcoord0), 
                 0.5f
             );
             vec4 left_center_color =  mix(
-                texture_val((v_adjacentMatIndices[2] >> 0) & 0xf, v_texcoord0), 
-                texture_val((v_adjacentMatIndices[2] >> 4) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.z >> 0) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.z >> 4) & 0xf, v_texcoord0), 
                 0.5f
             );
             vec4 bot_center_color = mix(
-                texture_val((v_adjacentMatIndices[2] >> 8) & 0xf, v_texcoord0),
-                texture_val((v_adjacentMatIndices[2] >> 12) & 0xf, v_texcoord0),
+                texture_val((v_adjacentMatIndices.z >> 8) & 0xf, v_texcoord0),
+                texture_val((v_adjacentMatIndices.z >> 12) & 0xf, v_texcoord0),
                 0.5f
             );
             vec4 right_center_color = mix(
-                texture_val((v_adjacentMatIndices[2] >> 16) & 0xf, v_texcoord0), 
-                texture_val((v_adjacentMatIndices[2] >> 20) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.z >> 16) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.z >> 20) & 0xf, v_texcoord0), 
                 0.5f
             );
             vec4 top_center_color = mix(
-                texture_val((v_adjacentMatIndices[2] >> 24) & 0xf, v_texcoord0), 
-                texture_val((v_adjacentMatIndices[2] >> 28) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.z >> 24) & 0xf, v_texcoord0), 
+                texture_val((v_adjacentMatIndices.z >> 28) & 0xf, v_texcoord0), 
                 0.5f
             );
 

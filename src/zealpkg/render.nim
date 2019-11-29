@@ -83,7 +83,9 @@ proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Verte
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD3, 1,
       BGFX_ATTRIB_TYPE_FLOAT, false, false)
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD4, 4,
-      BGFX_ATTRIB_TYPE_FLOAT, false, false)
+      BGFX_ATTRIB_TYPE_INT16, false, false)
+  bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD5, 4,
+      BGFX_ATTRIB_TYPE_INT16, false, false)
   bgfx_vertex_layout_end(addr renderData.mesh.vLayout)
   # bgfx_vertex_decl_begin(addr renderData.mesh.vDecl, rendererType)
   # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_POSITION, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false)
