@@ -46,6 +46,7 @@ proc setViewTransform*(view: var Mat4) =
 
 proc draw*(mapRenderData: MapRenderData, renderData: RenderData,
     model: var Mat4) =
+    
   bgfx_set_view_rect(0, 0, 0, 1280'u16, 720'u16)
 
   bgfx_touch(0)
@@ -139,11 +140,8 @@ proc init*(basePath: string) =
   rendererType = bgfx_get_renderer_type()
   rendererCaps = bgfx_get_caps()
 
-  echo repr rendererCaps
-
   shader.init(basePath)
 
-  # bgfx_set_debug(BGFX_DEBUG_STATS)
   bgfx_reset(1280, 720, BGFX_RESET_VSYNC, BGFX_TEXTURE_FORMAT_COUNT)
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 

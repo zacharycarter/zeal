@@ -8,4 +8,5 @@
 #define NK_INCLUDE_COMMAND_USERDATA
 #define NK_IMPLEMENTATION
 
+#include <stdarg.h>
 #include "nuklear/nuklear.h"

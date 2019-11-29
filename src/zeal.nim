@@ -4,7 +4,7 @@ import zealpkg / [event, game, simulation, render, script, fpmath, script_ui]
 const
   SDL_MAJOR_VERSION* = 2
   SDL_MINOR_VERSION* = 0
-  SDL_PATCHLEVEL* = 8
+  SDL_PATCHLEVEL* = 10
 
 type
   Foo* = object
@@ -26,6 +26,13 @@ when defined(windows):
 
     SysWMInfoKindObj* = object
       win*: SysWMMsgWinObj
+elif defined(macosx):
+  type
+    SysWMinfoCocoaObj = object
+      window: pointer
+
+    SysWMinfoKindObj = object
+      cocoa: SysWMinfoCocoaObj
 
 var
   window: sdl.WindowPtr
@@ -57,7 +64,7 @@ proc processSDLEvents() =
       discard
 
 proc linkSDL2BGFX() =
-  var pd: ptr bgfx_platform_data_t = createShared(bgfx_platform_data_t)
+  var pd: bgfx_platform_data_t
   var info: sdl.WMinfo
   sdlVersion(info.version)
   assert sdl.getWMInfo(window, info)
@@ -68,14 +75,18 @@ proc linkSDL2BGFX() =
         let info = cast[ptr SysWMInfoKindObj](addr info.padding[0])
         pd.nwh = cast[pointer](info.win.window)
       pd.ndt = nil
+    of SysWM_Cocoa:
+      when defined(macosx):
+        let info = cast[ptr SysWMinfoKindObj](addr info.padding[0])
+        pd.nwh = info.cocoa.window
+      pd.ndt = nil
     else:
       discard
 
   pd.backBuffer = nil
   pd.backBufferDS = nil
   pd.context = nil
-  bgfx_set_platform_data(pd)
-  freeShared(pd)
+  bgfx_set_platform_data(addr pd)
 
 proc init(): bool =
   prevTickEvents = @[]
@@ -102,7 +113,7 @@ proc init(): bool =
     return false
 
 
-  render.init(paramStr(1))
+  render.init(".")
   event.init()
 
   event.globalRegister(EventKind(sdl.QuitEvent), onUserQuit, nil, int32(

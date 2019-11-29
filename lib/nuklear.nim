@@ -1,5 +1,5 @@
 {.deadCodeElim: on.}
-{.compile: "./bind_nuklear.c".}
+{.compile: "./bind_nuklear.cc".}
 
 const
   nk_false* = 0

@@ -8,7 +8,7 @@ flat ivec4 a_texcoord5          : TEXCOORD5;
 
 vec2 v_texcoord0                : TEXCOORD0;
 vec3 v_worldPos                 : TEXCOORD1;
-flat int v_materialID           : TEXCOORD2;
+flat float v_materialID           : TEXCOORD2;
 vec3 v_normal                   : NORMAL;
-flat int v_blendMode            : TEXCOORD3;
+flat float v_blendMode            : TEXCOORD3;
 flat ivec4 v_adjacentMatIndices : TEXCOORD4;

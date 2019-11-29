@@ -29,6 +29,8 @@ proc loadShader(basePath: string, filePath: string,
   case bgfx_get_renderer_type()
   of BGFX_RENDERER_TYPE_DIRECT3D11:
     shaderPath = "$1/shaders/dx11/$2" % [basePath, filePath]
+  of BGFX_RENDERER_TYPE_METAL:
+    shaderPath = "$1/shaders/metal/$2" % [basePath, filePath]
   else:
     discard
 
