@@ -1,9 +1,17 @@
 import bgfxdotnim, sdl2 as sdl, shader, mesh, material, tables, texture, vertex, fpmath
 
+template `+`*[T](p: ptr T, off: int): ptr T =
+  cast[ptr type(p[])](cast[ByteAddress](p) +% off * sizeof(p[]))
+
 const
   vertsPerSideFace* = 6
   vertsPerTopFace* = 24
   vertsPerTile* = 4 * vertsPerSideFace + vertsPerTopFace
+
+  bottom = -1.0'f32
+  top = 3.0'f32
+  left = -1.0'f32
+  right = 3.0'f32
 
 type
   RenderPass* = enum
@@ -21,13 +29,29 @@ type
     sTexColor*: bgfx_uniform_handle_t
     textures*: TextureArray
 
+  PosVertex = object
+    x, y, z: float32
+
 var
   rendererType: bgfx_renderer_type_t
   rendererCaps*: ptr bgfx_caps_t
+
   uAmbientColor: bgfx_uniform_handle_t
   uEmitLightColor: bgfx_uniform_handle_t
   uEmitLightPos: bgfx_uniform_handle_t
   uViewPos: bgfx_uniform_handle_t
+
+  frameBuffer: bgfx_frame_buffer_handle_t
+
+  posVertexLayout: bgfx_vertex_layout_t
+
+  blitSampler: bgfx_uniform_handle_t
+  camPosUniform: bgfx_uniform_handle_t
+  normalMatrixUniform: bgfx_uniform_handle_t
+  exposureVecUniform: bgfx_uniform_handle_t
+  tonemappingModeVecUniform: bgfx_uniform_handle_t
+
+  blitTriangleBuffer: bgfx_vertex_buffer_handle_t
 
 proc setAmbientLightColor*(val: var Vec3) =
   bgfx_set_uniform(uAmbientColor, addr val[0], 1)
@@ -46,7 +70,7 @@ proc setViewTransform*(view: var Mat4) =
 
 proc draw*(mapRenderData: MapRenderData, renderData: RenderData,
     model: var Mat4) =
-    
+
   bgfx_set_view_rect(0, 0, 0, 1280'u16, 720'u16)
 
   bgfx_touch(0)
@@ -88,50 +112,52 @@ proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Verte
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD5, 4,
       BGFX_ATTRIB_TYPE_INT16, false, false)
   bgfx_vertex_layout_end(addr renderData.mesh.vLayout)
-  # bgfx_vertex_decl_begin(addr renderData.mesh.vDecl, rendererType)
-  # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_POSITION, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false)
-  # bgfx_vertex_decl_add(addr renderData.mesh.vDecl, BGFX_ATTRIB_COLOR0, 4, BGFX_ATTRIB_TYPE_UINT8, true, false)
-  # bgfx_vertex_decl_end(addr renderData.mesh.vDecl)
-
-  # type
-  #   PosColorVertex = object
-  #     x, y, z: float32
-  #     abgr: uint32
-
-  # var verts = [
-  #   PosColorVertex(x: -1.0'f32, y: 1.0f,  z: 1.0f, abgr: 0xff000000'u32),
-  #   PosColorVertex(x: 1.0'f32,  y: 1.0f,  z: 1.0f, abgr: 0xff0000ff'u32),
-  #   PosColorVertex(x: -1.0'f32, y: -1.0f, z: 1.0f, abgr: 0xff00ff00'u32),
-  #   PosColorVertex(x: 1.0'f32,  y: -1.0f, z: 1.0f, abgr: 0xff00ffff'u32),
-  #   PosColorVertex(x: -1.0'f32, y: 1.0f,  z: -1.0f, abgr: 0xffff0000'u32),
-  #   PosColorVertex(x: 1.0'f32,  y: 1.0f,  z: -1.0f, abgr: 0xffff00ff'u32),
-  #   PosColorVertex(x: -1.0'f32, y: -1.0f, z: -1.0f, abgr: 0xffffff00'u32),
-  #   PosColorVertex(x: 1.0'f32,  y: -1.0f, z: -1.0f, abgr: 0xffffffff'u32)
-  # ]
-
-  # var mem = bgfx_copy(cast[pointer](addr vbuff[0]), uint32(sizeof(Vertex) * renderData.mesh.numVerts))
-  # renderData.mesh.vBuffHandle = bgfx_create_dynamic_vertex_buffer_mem(mem, addr renderData.mesh.vDecl, BGFX_BUFFER_ALLOW_RESIZE)
-
-  # var triList = [
-  #   0'u16, 1, 2, # 0
-  #   1, 3, 2,
-  #   4, 6, 5, # 2
-  #   5, 6, 7,
-  #   0, 2, 4, # 4
-  #   4, 2, 6,
-  #   1, 5, 3, # 6
-  #   5, 7, 3,
-  #   0, 4, 1, # 8
-  #   4, 5, 1,
-  #   2, 3, 6, # 10
-  #   6, 3, 7,
-  # ]
-
-  # var mem1 = bgfx_copy(cast[pointer](addr triList[0]), sizeof(uint16) * 36)
-  # renderData.mesh.iBuffHandle = bgfx_create_index_buffer(mem1, BGFX_BUFFER_NONE)
 
   renderData.shaderProgram = programHandles[shader]
   assert(renderData.shaderProgram.idx != BGFX_INVALID_HANDLE.idx)
+
+proc findDepthFormat(textureFlags: uint64;
+    stencil: bool = false): bgfx_texture_format_t =
+
+  let
+    formats = if stencil: @[BGFX_TEXTURE_FORMAT_D24S8] else: @[
+      BGFX_TEXTURE_FORMAT_D16, BGFX_TEXTURE_FORMAT_D32]
+
+  result = BGFX_TEXTURE_FORMAT_COUNT
+  for i in 0 ..< len(formats):
+    if bgfx_is_texture_valid(0, false, 1, formats[i], textureFlags):
+      result = formats[i]
+      break
+
+  assert(result != BGFX_TEXTURE_FORMAT_COUNT)
+
+proc createFrameBuffer(hdr, depth: bool): bgfx_frame_buffer_handle_t =
+  var
+    textures: array[2, bgfx_texture_handle_t]
+    attachments = 0'u8
+
+  let
+    samplerFlags = uint64(BGFX_SAMPLER_MIN_POINT or BGFX_SAMPLER_MAG_POINT or
+      BGFX_SAMPLER_MIP_POINT or BGFX_SAMPLER_U_CLAMP or BGFX_SAMPLER_V_CLAMP)
+    format = if hdr: BGFX_TEXTURE_FORMAT_RGBA16F else: BGFX_TEXTURE_FORMAT_BGRA8
+
+  assert(bgfx_is_texture_valid(0, false, 1, format, BGFX_TEXTURE_RT or samplerFlags))
+  textures[attachments] = bgfx_create_texture_2d_scaled(
+    BGFX_BACKBUFFER_RATIO_EQUAL, false, 1, format, BGFX_TEXTURE_RT or samplerFlags)
+  inc(attachments)
+
+  if depth:
+    let depthFormat = findDepthFormat(BGFX_TEXTURE_RT_WRITE_ONLY or samplerFlags)
+    assert(depthFormat != BGFX_TEXTURE_FORMAT_COUNT)
+    textures[attachments] = bgfx_create_texture_2d_scaled(
+        BGFX_BACKBUFFER_RATIO_EQUAL, false, 1, depthFormat,
+        BGFX_TEXTURE_RT_WRITE_ONLY or samplerFlags)
+    inc(attachments)
+
+  result = bgfx_create_frame_buffer_from_handles(attachments, addr textures[0], true)
+
+  if result.idx == high(uint16):
+    echo "failed to create framebuffer"
 
 proc init*(basePath: string) =
   var displayMode: sdl.DisplayMode
@@ -142,15 +168,47 @@ proc init*(basePath: string) =
 
   shader.init(basePath)
 
-  bgfx_reset(1280, 720, BGFX_RESET_VSYNC, BGFX_TEXTURE_FORMAT_COUNT)
+  bgfx_reset(1280, 720, BGFX_RESET_MAXANISOTROPY or BGFX_RESET_VSYNC, BGFX_TEXTURE_FORMAT_COUNT)
   bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
+
+  frameBuffer = createFrameBuffer(true, true)
+
+  bgfx_vertex_layout_begin(addr posVertexLayout, BGFX_RENDERER_TYPE_NOOP)
+  bgfx_vertex_layout_add(addr posVertexLayout, BGFX_ATTRIB_POSITION, 3,
+      BGFX_ATTRIB_TYPE_FLOAT, false, false)
+  bgfx_vertex_layout_end(addr posVertexLayout)
+
+  blitSampler = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_SAMPLER, 1)
+  camPosUniform = bgfx_create_uniform("u_camPos", BGFX_UNIFORM_TYPE_VEC4, 1)
+  normalMatrixUniform = bgfx_create_uniform("u_normalMatrix",
+    BGFX_UNIFORM_TYPE_MAT3, 1)
+  exposureVecUniform = bgfx_create_uniform("u_exposureVec",
+    BGFX_UNIFORM_TYPE_VEC4, 1)
+  tonemappingModeVecUniform = bgfx_create_uniform("u_tonemappingModeVec",
+    BGFX_UNIFORM_TYPE_VEC4, 1)
 
   uAmbientColor = bgfx_create_uniform("ambient_color", BGFX_UNIFORM_TYPE_VEC4, 1)
   uEmitLightColor = bgfx_create_uniform("light_color", BGFX_UNIFORM_TYPE_VEC4, 1)
   uEmitLightPos = bgfx_create_uniform("light_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
   uViewPos = bgfx_create_uniform("view_pos", BGFX_UNIFORM_TYPE_VEC4, 1)
 
+  var vertices = [
+    PosVertex(x: left, y: bottom, z: 0.0'f32),
+    PosVertex(x: right, y: bottom, z: 0.0'f32),
+    PosVertex(x: left, y: top, z: 0.0'f32)
+  ]
+  blitTriangleBuffer = bgfx_create_vertex_buffer(bgfx_copy(addr vertices[0],
+      uint32(sizeof(vertices))), addr posVertexLayout, BGFX_BUFFER_NONE)
+
 proc shutdown*() =
+  bgfx_destroy_uniform(blitSampler)
+  bgfx_destroy_uniform(camPosUniform)
+  bgfx_destroy_uniform(normalMatrixUniform)
+  bgfx_destroy_uniform(exposureVecUniform)
+  bgfx_destroy_uniform(tonemappingModeVecUniform)
+
+  bgfx_destroy_vertex_buffer(blitTriangleBuffer)
+
   bgfx_destroy_uniform(uAmbientColor)
   bgfx_destroy_uniform(uEmitLightColor)
   bgfx_destroy_uniform(uEmitLightPos)
