@@ -19,6 +19,11 @@ var
       name: "terrain",
       vertexPath: "vertex/terrain_vs.bin",
       fragPath: "fragment/terrain_fs.bin"
+    ),
+    ShaderResource(
+      name: "blit",
+      vertexPath: "vertex/tonemap_vs.bin",
+      fragPath: "fragment/tonemap_fs.bin"
     )
   ]
   programHandles*: Table[string, bgfx_program_handle_t]

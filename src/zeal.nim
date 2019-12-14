@@ -161,7 +161,8 @@ proc run*() =
         event.serviceQueue()
         # game.update()
         accumulator -= physDeltaTime
-      render()
+      game.render()
+      # render.render()
   except:
     echo getCurrentExceptionMsg()
   finally:

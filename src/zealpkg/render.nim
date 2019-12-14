@@ -13,6 +13,8 @@ const
   left = -1.0'f32
   right = 3.0'f32
 
+  maxView = 199'u16
+
 type
   RenderPass* = enum
     rpDepth,
@@ -199,6 +201,23 @@ proc init*(basePath: string) =
   ]
   blitTriangleBuffer = bgfx_create_vertex_buffer(bgfx_copy(addr vertices[0],
       uint32(sizeof(vertices))), addr posVertexLayout, BGFX_BUFFER_NONE)
+
+proc blitToScreen(view: bgfx_view_id_t) =
+  bgfx_set_view_clear(view, BGFX_CLEAR_NONE, 255'u32, 1.0'f32, 0'u8)
+  bgfx_set_view_rect(view, 0, 0, 1280, 720)
+  bgfx_set_view_frame_buffer(view, bgfx_frame_buffer_handle_t(idx: high(uint16)))
+  bgfx_set_state(BGFX_STATE_WRITE_RGB or BGFX_STATE_CULL_CW, 0'u32)
+  let frameBufferTexture = bgfx_get_texture(frameBuffer, 0)
+  bgfx_set_texture(0'u8, blitSampler, frameBufferTexture, high(uint32))
+  var exposureVec = [1.0'f32, 1.0'f32, 1.0'f32, 1.0'f32]
+  bgfx_set_uniform(exposureVecUniform, addr exposureVec[0], 1)
+  var toneMappingModeVec = [0.0'f32, 0.0'f32, 0.0'f32, 0.0'f32]
+  bgfx_set_uniform(tonemappingModeVecUniform, addr toneMappingModeVec[0], 1)
+  bgfx_set_vertex_buffer(0'u8, blitTriangleBuffer, 0'u32, high(uint32))
+  bgfx_submit(view, programHandles["blit"], 0'u32, false)
+
+proc render*() =
+  blitToScreen(maxView)
 
 proc shutdown*() =
   bgfx_destroy_uniform(blitSampler)
