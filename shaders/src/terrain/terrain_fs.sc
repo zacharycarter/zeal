@@ -66,7 +66,7 @@ void main()
 {
     vec4 tex_color;
 
-    switch(int(v_blendMode))
+    switch(v_blendMode)
     {
         case BLEND_MODE_NOBLEND: 
             tex_color = texture_val(v_materialID, v_texcoord0);

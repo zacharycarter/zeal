@@ -1,5 +1,5 @@
 // shaderc command line:
-// shadercRelease.exe -f .\src\basic\basic_vs.sc -o .\dx11\vertex\basic_vs.bin --varyingdef .\src\basic\varying.def.sc -i ..\..\bgfx\src\ -i .\src --type vertex --platform windows -p vs_5_0 --debug -O 0
+// shadercRelease.exe -f .\src\basic\basic_vs.sc -o .\dx11\vertex\basic_vs.bin --varyingdef .\src\varying.def.sc -i ..\..\bgfx\src\ -i .\src --type vertex --platform windows -p vs_5_0 --debug -O 0
 
 struct Output
 {

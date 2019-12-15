@@ -1,16 +1,6 @@
 // shaderc command line:
-// shadercRelease.exe -f .\src\terrain\terrain_vs.sc -o .\dx11\vertex\terrain_vs.bin --varyingdef .\src\varying.def.sc -i ..\..\bgfx\src\ -i .\src --type vertex --platform windows -p vs_5_0 --debug -O 0
+// shadercRelease.exe -f .\src\tonemap\tonemap_fs.sc -o .\dx11\fragment\tonemap_fs.bin --varyingdef .\src\varying.def.sc -i ..\..\bgfx\src\ -i .\src --type fragment --platform windows -p ps_5_0 --debug -O 0
 
-struct Output
-{
-float4 gl_Position : SV_POSITION;
-int4 v_adjacentMatIndices : TEXCOORD4;
-int v_blendMode : TEXCOORD3;
-int v_materialID : TEXCOORD2;
-float3 v_normal : NORMAL;
-float2 v_texcoord0 : TEXCOORD0;
-float3 v_worldPos : TEXCOORD1;
-};
 float intBitsToFloat(int _x) { return asfloat(_x); }
 float2 intBitsToFloat(uint2 _x) { return asfloat(_x); }
 float3 intBitsToFloat(uint3 _x) { return asfloat(_x); }
@@ -289,7 +279,7 @@ float3x3 mtxFromCols(float3 _0, float3 _1, float3 _2)
 {
 return transpose(float3x3(_0, _1, _2) );
 }
-static float4 u_viewRect;
+uniform float4 u_viewRect;
 static float4 u_viewTexel;
 static float4x4 u_view;
 static float4x4 u_invView;
@@ -297,334 +287,135 @@ static float4x4 u_proj;
 static float4x4 u_invProj;
 static float4x4 u_viewProj;
 static float4x4 u_invViewProj;
-uniform float4x4 u_model[32];
+static float4x4 u_model[32];
 static float4x4 u_modelView;
-uniform float4x4 u_modelViewProj;
+static float4x4 u_modelViewProj;
 static float4 u_alphaRef4;
-float4 encodeRE8(float _r)
+float3 LinearTosRGB(float3 linearRGB)
 {
-float exponent = ceil(log2(_r) );
-return float4(_r / exp2(exponent)
-, 0.0
-, 0.0
-, (exponent + 128.0) / 255.0
+float3 cutoff = step(linearRGB, vec3_splat(0.0031308));
+float3 higher = 1.055 * pow(linearRGB, vec3_splat(1.0/2.4)) - 0.055;
+float3 lower = linearRGB * 12.92;
+return mix(higher, lower, cutoff);
+}
+float3 sRGBToLinear(float3 sRGB)
+{
+float3 cutoff = step(sRGB, vec3_splat(0.04045));
+float3 higher = pow((sRGB + 0.055) / 1.055, vec3_splat(2.4));
+float3 lower = sRGB / 12.92;
+return mix(higher, lower, cutoff);
+}
+float luminance(float3 RGB)
+{
+return 0.2126 * RGB.r + 0.7152 * RGB.g + 0.0722 * RGB.b;
+}
+float3 tonemap_exponential(float3 color)
+{
+return vec3_splat(1.0) - exp(-color);
+}
+float3 tonemap_reinhard(float3 color)
+{
+return color / (color + 1.0);
+}
+float3 tonemap_reinhard_luminance(float3 color)
+{
+float lum = luminance(color);
+float nLum = lum / (lum + 1.0);
+return color * (nLum / lum);
+}
+float3 hable_map(float3 x)
+{
+const float A = 0.22;
+const float B = 0.30;
+const float C = 0.10;
+const float D = 0.20;
+const float E = 0.01;
+const float F = 0.30;
+return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+float3 tonemap_hable(float3 color)
+{
+const float whiteScale = 0.72513;
+const float ExposureBias = 2.0;
+return hable_map(ExposureBias * color) / whiteScale;
+}
+float3 tonemap_duiker(float3 color)
+{
+float3 x = max(color - 0.004, 0.0);
+float3 result = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+return pow(result, vec3_splat(2.2));
+}
+float3 tonemap_aces(float3 color)
+{
+const float3x3 ACESInputMat = float3x3(
+0.59719, 0.35458, 0.04823,
+0.07600, 0.90834, 0.01566,
+0.02840, 0.13383, 0.83777
 );
-}
-float decodeRE8(float4 _re8)
-{
-float exponent = _re8.w * 255.0 - 128.0;
-return _re8.x * exp2(exponent);
-}
-float4 encodeRGBE8(float3 _rgb)
-{
-float4 rgbe8;
-float maxComponent = max(max(_rgb.x, _rgb.y), _rgb.z);
-float exponent = ceil(log2(maxComponent) );
-rgbe8.xyz = _rgb / exp2(exponent);
-rgbe8.w = (exponent + 128.0) / 255.0;
-return rgbe8;
-}
-float3 decodeRGBE8(float4 _rgbe8)
-{
-float exponent = _rgbe8.w * 255.0 - 128.0;
-float3 rgb = _rgbe8.xyz * exp2(exponent);
-return rgb;
-}
-float3 encodeNormalUint(float3 _normal)
-{
-return _normal * 0.5 + 0.5;
-}
-float3 decodeNormalUint(float3 _encodedNormal)
-{
-return _encodedNormal * 2.0 - 1.0;
-}
-float2 encodeNormalSphereMap(float3 _normal)
-{
-return normalize(_normal.xy) * sqrt(_normal.z * 0.5 + 0.5);
-}
-float3 decodeNormalSphereMap(float2 _encodedNormal)
-{
-float zz = dot(_encodedNormal, _encodedNormal) * 2.0 - 1.0;
-return float3(normalize(_encodedNormal.xy) * sqrt(1.0 - zz*zz), zz);
-}
-float2 octahedronWrap(float2 _val)
-{
-return (1.0 - abs(_val.yx) )
-* mix(vec2_splat(-1.0), vec2_splat(1.0), float2(greaterThanEqual(_val.xy, vec2_splat(0.0) ) ) );
-}
-float2 encodeNormalOctahedron(float3 _normal)
-{
-_normal /= abs(_normal.x) + abs(_normal.y) + abs(_normal.z);
-_normal.xy = _normal.z >= 0.0 ? _normal.xy : octahedronWrap(_normal.xy);
-_normal.xy = _normal.xy * 0.5 + 0.5;
-return _normal.xy;
-}
-float3 decodeNormalOctahedron(float2 _encodedNormal)
-{
-_encodedNormal = _encodedNormal * 2.0 - 1.0;
-float3 normal;
-normal.z = 1.0 - abs(_encodedNormal.x) - abs(_encodedNormal.y);
-normal.xy = normal.z >= 0.0 ? _encodedNormal.xy : octahedronWrap(_encodedNormal.xy);
-return normalize(normal);
-}
-float3 convertRGB2XYZ(float3 _rgb)
-{
-float3 xyz;
-xyz.x = dot(float3(0.4124564, 0.3575761, 0.1804375), _rgb);
-xyz.y = dot(float3(0.2126729, 0.7151522, 0.0721750), _rgb);
-xyz.z = dot(float3(0.0193339, 0.1191920, 0.9503041), _rgb);
-return xyz;
-}
-float3 convertXYZ2RGB(float3 _xyz)
-{
-float3 rgb;
-rgb.x = dot(float3( 3.2404542, -1.5371385, -0.4985314), _xyz);
-rgb.y = dot(float3(-0.9692660, 1.8760108, 0.0415560), _xyz);
-rgb.z = dot(float3( 0.0556434, -0.2040259, 1.0572252), _xyz);
-return rgb;
-}
-float3 convertXYZ2Yxy(float3 _xyz)
-{
-float inv = 1.0/dot(_xyz, float3(1.0, 1.0, 1.0) );
-return float3(_xyz.y, _xyz.x*inv, _xyz.y*inv);
-}
-float3 convertYxy2XYZ(float3 _Yxy)
-{
-float3 xyz;
-xyz.x = _Yxy.x*_Yxy.y/_Yxy.z;
-xyz.y = _Yxy.x;
-xyz.z = _Yxy.x*(1.0 - _Yxy.y - _Yxy.z)/_Yxy.z;
-return xyz;
-}
-float3 convertRGB2Yxy(float3 _rgb)
-{
-return convertXYZ2Yxy(convertRGB2XYZ(_rgb) );
-}
-float3 convertYxy2RGB(float3 _Yxy)
-{
-return convertXYZ2RGB(convertYxy2XYZ(_Yxy) );
-}
-float3 convertRGB2Yuv(float3 _rgb)
-{
-float3 yuv;
-yuv.x = dot(_rgb, float3(0.299, 0.587, 0.114) );
-yuv.y = (_rgb.x - yuv.x)*0.713 + 0.5;
-yuv.z = (_rgb.z - yuv.x)*0.564 + 0.5;
-return yuv;
-}
-float3 convertYuv2RGB(float3 _yuv)
-{
-float3 rgb;
-rgb.x = _yuv.x + 1.403*(_yuv.y-0.5);
-rgb.y = _yuv.x - 0.344*(_yuv.y-0.5) - 0.714*(_yuv.z-0.5);
-rgb.z = _yuv.x + 1.773*(_yuv.z-0.5);
-return rgb;
-}
-float3 convertRGB2YIQ(float3 _rgb)
-{
-float3 yiq;
-yiq.x = dot(float3(0.299, 0.587, 0.114 ), _rgb);
-yiq.y = dot(float3(0.595716, -0.274453, -0.321263), _rgb);
-yiq.z = dot(float3(0.211456, -0.522591, 0.311135), _rgb);
-return yiq;
-}
-float3 convertYIQ2RGB(float3 _yiq)
-{
-float3 rgb;
-rgb.x = dot(float3(1.0, 0.9563, 0.6210), _yiq);
-rgb.y = dot(float3(1.0, -0.2721, -0.6474), _yiq);
-rgb.z = dot(float3(1.0, -1.1070, 1.7046), _yiq);
-return rgb;
-}
-float3 toLinear(float3 _rgb)
-{
-return pow(abs(_rgb), vec3_splat(2.2) );
-}
-float4 toLinear(float4 _rgba)
-{
-return float4(toLinear(_rgba.xyz), _rgba.w);
-}
-float3 toLinearAccurate(float3 _rgb)
-{
-float3 lo = _rgb / 12.92;
-float3 hi = pow( (_rgb + 0.055) / 1.055, vec3_splat(2.4) );
-float3 rgb = mix(hi, lo, float3(lessThanEqual(_rgb, vec3_splat(0.04045) ) ) );
-return rgb;
-}
-float4 toLinearAccurate(float4 _rgba)
-{
-return float4(toLinearAccurate(_rgba.xyz), _rgba.w);
-}
-float toGamma(float _r)
-{
-return pow(abs(_r), 1.0/2.2);
-}
-float3 toGamma(float3 _rgb)
-{
-return pow(abs(_rgb), vec3_splat(1.0/2.2) );
-}
-float4 toGamma(float4 _rgba)
-{
-return float4(toGamma(_rgba.xyz), _rgba.w);
-}
-float3 toGammaAccurate(float3 _rgb)
-{
-float3 lo = _rgb * 12.92;
-float3 hi = pow(abs(_rgb), vec3_splat(1.0/2.4) ) * 1.055 - 0.055;
-float3 rgb = mix(hi, lo, float3(lessThanEqual(_rgb, vec3_splat(0.0031308) ) ) );
-return rgb;
-}
-float4 toGammaAccurate(float4 _rgba)
-{
-return float4(toGammaAccurate(_rgba.xyz), _rgba.w);
-}
-float3 toReinhard(float3 _rgb)
-{
-return toGamma(_rgb/(_rgb+vec3_splat(1.0) ) );
-}
-float4 toReinhard(float4 _rgba)
-{
-return float4(toReinhard(_rgba.xyz), _rgba.w);
-}
-float3 toFilmic(float3 _rgb)
-{
-_rgb = max(vec3_splat(0.0), _rgb - 0.004);
-_rgb = (_rgb*(6.2*_rgb + 0.5) ) / (_rgb*(6.2*_rgb + 1.7) + 0.06);
-return _rgb;
-}
-float4 toFilmic(float4 _rgba)
-{
-return float4(toFilmic(_rgba.xyz), _rgba.w);
-}
-float3 toAcesFilmic(float3 _rgb)
-{
-float aa = 2.51f;
-float bb = 0.03f;
-float cc = 2.43f;
-float dd = 0.59f;
-float ee = 0.14f;
-return saturate( (_rgb*(aa*_rgb + bb) )/(_rgb*(cc*_rgb + dd) + ee) );
-}
-float4 toAcesFilmic(float4 _rgba)
-{
-return float4(toAcesFilmic(_rgba.xyz), _rgba.w);
-}
-float3 luma(float3 _rgb)
-{
-float yy = dot(float3(0.2126729, 0.7151522, 0.0721750), _rgb);
-return vec3_splat(yy);
-}
-float4 luma(float4 _rgba)
-{
-return float4(luma(_rgba.xyz), _rgba.w);
-}
-float3 conSatBri(float3 _rgb, float3 _csb)
-{
-float3 rgb = _rgb * _csb.z;
-rgb = mix(luma(rgb), rgb, _csb.y);
-rgb = mix(vec3_splat(0.5), rgb, _csb.x);
-return rgb;
-}
-float4 conSatBri(float4 _rgba, float3 _csb)
-{
-return float4(conSatBri(_rgba.xyz, _csb), _rgba.w);
-}
-float3 posterize(float3 _rgb, float _numColors)
-{
-return floor(_rgb*_numColors) / _numColors;
-}
-float4 posterize(float4 _rgba, float _numColors)
-{
-return float4(posterize(_rgba.xyz, _numColors), _rgba.w);
-}
-float3 sepia(float3 _rgb)
-{
-float3 color;
-color.x = dot(_rgb, float3(0.393, 0.769, 0.189) );
-color.y = dot(_rgb, float3(0.349, 0.686, 0.168) );
-color.z = dot(_rgb, float3(0.272, 0.534, 0.131) );
-return color;
-}
-float4 sepia(float4 _rgba)
-{
-return float4(sepia(_rgba.xyz), _rgba.w);
-}
-float3 blendOverlay(float3 _base, float3 _blend)
-{
-float3 lt = 2.0 * _base * _blend;
-float3 gte = 1.0 - 2.0 * (1.0 - _base) * (1.0 - _blend);
-return mix(lt, gte, step(vec3_splat(0.5), _base) );
-}
-float4 blendOverlay(float4 _base, float4 _blend)
-{
-return float4(blendOverlay(_base.xyz, _blend.xyz), _base.w);
-}
-float3 adjustHue(float3 _rgb, float _hue)
-{
-float3 yiq = convertRGB2YIQ(_rgb);
-float angle = _hue + atan2(yiq.z, yiq.y);
-float len = length(yiq.yz);
-return convertYIQ2RGB(float3(yiq.x, len*cos(angle), len*sin(angle) ) );
-}
-float4 packFloatToRgba(float _value)
-{
-const float4 shift = float4(256 * 256 * 256, 256 * 256, 256, 1.0);
-const float4 mask = float4(0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
-float4 comp = frac(_value * shift);
-comp -= comp.xxyz * mask;
-return comp;
-}
-float unpackRgbaToFloat(float4 _rgba)
-{
-const float4 shift = float4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);
-return dot(_rgba, shift);
-}
-float2 packHalfFloat(float _value)
-{
-const float2 shift = float2(256, 1.0);
-const float2 mask = float2(0, 1.0 / 256.0);
-float2 comp = frac(_value * shift);
-comp -= comp.xx * mask;
-return comp;
-}
-float unpackHalfFloat(float2 _rg)
-{
-const float2 shift = float2(1.0 / 256.0, 1.0);
-return dot(_rg, shift);
-}
-float random(float2 _uv)
-{
-return frac(sin(dot(_uv.xy, float2(12.9898, 78.233) ) ) * 43758.5453);
-}
-float3 fixCubeLookup(float3 _v, float _lod, float _topLevelCubeSize)
-{
-float ax = abs(_v.x);
-float ay = abs(_v.y);
-float az = abs(_v.z);
-float vmax = max(max(ax, ay), az);
-float scale = 1.0 - exp2(_lod) / _topLevelCubeSize;
-if (ax != vmax) { _v.x *= scale; }
-if (ay != vmax) { _v.y *= scale; }
-if (az != vmax) { _v.z *= scale; }
-return _v;
-}
-float2 texture2DBc5(BgfxSampler2D _sampler, float2 _uv)
-{
-return bgfxTexture2D(_sampler, _uv).xy;
-}
-Output main( float3 a_normal : NORMAL , float3 a_position : POSITION , float2 a_texcoord0 : TEXCOORD0 , float a_texcoord2 : TEXCOORD2 , float a_texcoord3 : TEXCOORD3 , int4 a_texcoord4 : TEXCOORD4 , int4 a_texcoord5 : TEXCOORD5) { Output _varying_; _varying_.v_adjacentMatIndices = int4(0, 0, 0, 0);; _varying_.v_blendMode = 0;; _varying_.v_materialID = 0;; _varying_.v_normal = float3(0.0, 0.0, 0.0);; _varying_.v_texcoord0; _varying_.v_worldPos = float3(0.0, 0.0, 0.0);;
-{
-_varying_.v_texcoord0 = a_texcoord0;
-_varying_.v_worldPos = mul(u_model[0], float4(a_position, 1.0) ).xyz;
-_varying_.v_materialID = a_texcoord2;
-_varying_.v_normal = normalize(mul(u_model[0], float4(a_normal.xyz, 0.0) ).xyz);
-_varying_.v_blendMode = a_texcoord3;
-_varying_.v_adjacentMatIndices = int4(
-(a_texcoord4.y << 16) | (a_texcoord4.x & 0xFFFF),
-(a_texcoord4.w << 16) | (a_texcoord4.z & 0xFFFF),
-(a_texcoord5.y << 16) | (a_texcoord5.x & 0xFFFF),
-(a_texcoord5.w << 16) | (a_texcoord5.z & 0xFFFF)
+const float3x3 ACESOutputMat = float3x3(
+1.60475, -0.53108, -0.07367,
+-0.10208, 1.10813, -0.00605,
+-0.00327, -0.07276, 1.07602
 );
-_varying_.gl_Position = mul(u_modelViewProj, float4(a_position, 1.0) );
-} return _varying_;
+float3 result = mul(ACESInputMat, color);
+float3 v = result;
+float3 a = v * (v + 0.0245786) - 0.000090537;
+float3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
+color = a / b;
+result = mul(ACESOutputMat, color);
+return saturate(result);
+}
+float3 tonemap_aces_luminance(float3 color)
+{
+const float a = 2.51;
+const float b = 0.03;
+const float c = 2.43;
+const float d = 0.59;
+const float e = 0.14;
+float3 x = color * 0.6;
+return saturate((x * (a * x + b)) / (x * (c * x + d ) + e));
+}
+uniform float4 u_exposureVec;
+uniform float4 u_tonemappingModeVec;
+uniform SamplerState s_texColorSampler : register(s[0]); uniform Texture2D s_texColorTexture : register(t[0]); static BgfxSampler2D s_texColor = { s_texColorSampler, s_texColorTexture };
+void main( float4 gl_FragCoord : SV_POSITION , out float4 bgfx_FragData0 : SV_TARGET0 )
+{
+float4 bgfx_VoidFrag = vec4_splat(0.0);
+float2 texcoord = gl_FragCoord.xy / u_viewRect.zw;
+float4 result = bgfxTexture2D(s_texColor, texcoord);
+result.rgb *= u_exposureVec.x;
+if(int(u_tonemappingModeVec.x) == 0)
+{
+result.rgb = saturate(result.rgb);
+}
+else if(int(u_tonemappingModeVec.x) == 1)
+{
+result.rgb = tonemap_exponential(result.rgb);
+}
+else if(int(u_tonemappingModeVec.x) == 2)
+{
+result.rgb = tonemap_reinhard(result.rgb);
+}
+else if(int(u_tonemappingModeVec.x) == 3)
+{
+result.rgb = tonemap_reinhard_luminance(result.rgb);
+}
+else if(int(u_tonemappingModeVec.x) == 4)
+{
+result.rgb = tonemap_hable(result.rgb);
+}
+else if(int(u_tonemappingModeVec.x) == 5)
+{
+result.rgb = tonemap_duiker(result.rgb);
+}
+else if(int(u_tonemappingModeVec.x) == 6)
+{
+result.rgb = tonemap_aces(result.rgb);
+}
+else if(int(u_tonemappingModeVec.x) == 7)
+{
+result.rgb = tonemap_aces_luminance(result.rgb);
+}
+result.rgb = LinearTosRGB(result.rgb);
+bgfx_FragData0 = result;
 }

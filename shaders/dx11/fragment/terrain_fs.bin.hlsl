@@ -1,5 +1,5 @@
 // shaderc command line:
-// shadercRelease.exe -f .\src\terrain\terrain_fs.sc -o .\dx11\fragment\terrain_fs.bin --varyingdef .\src\terrain\varying.def.sc -i ..\..\bgfx\src\ -i .\src --type fragment --platform windows -p ps_5_0 --debug -O 0
+// shadercRelease.exe -f .\src\terrain\terrain_fs.sc -o .\dx11\fragment\terrain_fs.bin --varyingdef .\src\varying.def.sc -i ..\..\bgfx\src\ -i .\src --type fragment --platform windows -p ps_5_0 --debug -O 0
 
 float intBitsToFloat(int _x) { return asfloat(_x); }
 float2 intBitsToFloat(uint2 _x) { return asfloat(_x); }

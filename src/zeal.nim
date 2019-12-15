@@ -1,4 +1,4 @@
-import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl, nimLUA, ../lib/nuklear
+import bgfxdotnim, bgfxdotnim/platform, os, sdl2 as sdl, ../lib/nuklear
 import zealpkg / [event, game, simulation, render, script, fpmath, script_ui]
 
 const
