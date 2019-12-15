@@ -46,7 +46,7 @@ proc aabbForChunk(map: Map, chunkPos: ChunkPos, outChunkAabb: var AABB) =
   assert(outChunkAabb.yMax >= outChunkAabb.yMin)
   assert(outChunkAabb.zMax >= outChunkAabb.zMin)
 
-proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
+proc renderVisibleMap*(map: Map, cam: var Camera, rp: RenderPass) =
   if map == nil:
     return
 
@@ -65,6 +65,7 @@ proc renderVisibleMap*(map: Map, cam: Camera, rp: RenderPass) =
       let chunk = map.chunks[r * map.width + c]
       modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
       draw(map.renderData, chunk.renderData, chunkModel)
+  render(cam.pos)
 
 proc centerAtOrigin*(map: Map) =
   if map == nil:

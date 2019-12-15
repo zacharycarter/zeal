@@ -162,7 +162,6 @@ proc run*() =
         # game.update()
         accumulator -= physDeltaTime
       game.render()
-      # render.render()
   except:
     echo getCurrentExceptionMsg()
   finally:

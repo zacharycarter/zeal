@@ -75,6 +75,8 @@ proc draw*(mapRenderData: MapRenderData, renderData: RenderData,
 
   bgfx_set_view_rect(0, 0, 0, 1280'u16, 720'u16)
 
+  bgfx_set_view_frame_buffer(0, frameBuffer)
+
   bgfx_touch(0)
 
   discard bgfx_set_transform(addr model[0], 1)
@@ -216,7 +218,8 @@ proc blitToScreen(view: bgfx_view_id_t) =
   bgfx_set_vertex_buffer(0'u8, blitTriangleBuffer, 0'u32, high(uint32))
   bgfx_submit(view, programHandles["blit"], 0'u32, false)
 
-proc render*() =
+proc render*(camPos: var Vec3) =
+  bgfx_set_uniform(camPosUniform, addr camPos[0], 1)
   blitToScreen(maxView)
 
 proc shutdown*() =
