@@ -66,12 +66,14 @@ proc setEmitLightPos*(val: var Vec3) =
 
 proc setViewTransform*(view: var Mat4) =
   var proj: Mat4
-  mtxProj(proj, 45.0'f32, 1280.0 / 720.0, 0.1, 1000.0,
+  mtxProj(proj, 45.0'f32, 1280.0 / 720.0, 20.0, 250.0,
       rendererCaps.homogeneousDepth)
   bgfx_set_view_transform(0, addr view[0], addr proj[0])
 
 proc draw*(mapRenderData: MapRenderData, renderData: RenderData,
-    model: var Mat4) =
+    model: var Mat4, camPos: var Vec3) =
+
+  bgfx_set_view_clear(0, BGFX_CLEAR_COLOR or BGFX_CLEAR_DEPTH, 0x303030ff, 1.0, 0)
 
   bgfx_set_view_rect(0, 0, 0, 1280'u16, 720'u16)
 
@@ -84,12 +86,11 @@ proc draw*(mapRenderData: MapRenderData, renderData: RenderData,
   bgfx_set_vertex_buffer(0'u8, renderData.mesh.vBuffHandle, 0'u32, uint32(
       renderData.mesh.numVerts))
 
-  bgfx_set_texture(0, mapRenderData.sTexColor, mapRenderData.textures.handle,
+  bgfx_set_texture(0'u8, mapRenderData.sTexColor, mapRenderData.textures.handle,
       high(uint32))
 
-  bgfx_set_state(0'u64 or BGFX_STATE_WRITE_RGB or
-    BGFX_STATE_WRITE_Z or
-    BGFX_STATE_DEPTH_TEST_LESS or BGFX_STATE_CULL_CCW, 0)
+  bgfx_set_state(0'u64 or BGFX_STATE_WRITE_RGB or BGFX_STATE_WRITE_Z or BGFX_STATE_DEPTH_TEST_LESS or BGFX_STATE_CULL_CCW, 0)
+  # bgfx_set_state(BGFX_STATE_DEFAULT and BGFX_STATE_CULL_MASK, 0)  
 
   bgfx_submit(0, renderData.shaderProgram, 0, false)
 
@@ -100,7 +101,7 @@ proc fillVBuff*(renderData: var RenderData, vBuff: var seq[Vertex]) =
       addr renderData.mesh.vLayout, BGFX_BUFFER_NONE)
 
 proc initVBuff*(renderData: var RenderData, shader: string, vBuff: var seq[Vertex]) =
-  bgfx_vertex_layout_begin(addr renderData.mesh.vLayout, rendererType)
+  bgfx_vertex_layout_begin(addr renderData.mesh.vLayout, BGFX_RENDERER_TYPE_NOOP)
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_POSITION, 3,
       BGFX_ATTRIB_TYPE_FLOAT, false, false)
   bgfx_vertex_layout_add(addr renderData.mesh.vLayout, BGFX_ATTRIB_TEXCOORD0, 2,
@@ -129,6 +130,8 @@ proc findDepthFormat(textureFlags: uint64;
 
   result = BGFX_TEXTURE_FORMAT_COUNT
   for i in 0 ..< len(formats):
+    echo "Format: ", formats[i]
+    echo "Is valid: ", bgfx_is_texture_valid(0, false, 1, formats[i], textureFlags)
     if bgfx_is_texture_valid(0, false, 1, formats[i], textureFlags):
       result = formats[i]
       break
@@ -152,6 +155,7 @@ proc createFrameBuffer(hdr, depth: bool): bgfx_frame_buffer_handle_t =
 
   if depth:
     let depthFormat = findDepthFormat(BGFX_TEXTURE_RT_WRITE_ONLY or samplerFlags)
+    # let depthFormat = BGFX_TEXTURE_FORMAT_D32
     assert(depthFormat != BGFX_TEXTURE_FORMAT_COUNT)
     textures[attachments] = bgfx_create_texture_2d_scaled(
         BGFX_BACKBUFFER_RATIO_EQUAL, false, 1, depthFormat,

@@ -1,6 +1,6 @@
 import event, fpmath, collision, render, sdl2 as sdl
 
-const camZNearDist = 0.1'f32
+const camZNearDist = 20.0'f32
 const camFovRad = PI/4.0'f32
 
 type
@@ -64,7 +64,7 @@ proc makeFrustum*(camera: Camera, frustum: var Frustum) =
   let aspectRatio = 1280.0'f32 / 720.0'f32
 
   makeFrustum(camera.pos, camera.up, camera.front, aspectRatio, camFovRad,
-      camZNearDist, 1000, frustum)
+      camZNearDist, 250.0, frustum)
 
 proc tickFinishPerspective*(cam: var Camera) =
   var

@@ -24,7 +24,7 @@ SAMPLER2DARRAY(s_texColor, 0);
 
 vec4 texture_val(int mat_idx, vec2 uv)
 {
-    return texture2DArray(s_texColor, vec3(uv, (float)mat_idx));
+    return texture2DArray(s_texColor, vec3(uv, float(mat_idx)));
 }
 
 vec4 mixed_texture_val(int adjacency_mats, vec2 uv)

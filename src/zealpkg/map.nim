@@ -64,7 +64,7 @@ proc renderVisibleMap*(map: Map, cam: var Camera, rp: RenderPass) =
       var chunkModel: Mat4
       let chunk = map.chunks[r * map.width + c]
       modelMatrixForChunk(map, ChunkPos(r: r, c: c), chunkModel)
-      draw(map.renderData, chunk.renderData, chunkModel)
+      draw(map.renderData, chunk.renderData, chunkModel, cam.pos)
   render(cam.pos)
 
 proc centerAtOrigin*(map: Map) =

@@ -609,7 +609,7 @@ static float4 view_pos;
 uniform SamplerState s_texColorSampler : register(s[0]); uniform Texture2DArray s_texColorTexture : register(t[0]); static BgfxSampler2DArray s_texColor = { s_texColorSampler, s_texColorTexture };
 float4 texture_val(int mat_idx, float2 uv)
 {
-return bgfxTexture2DArray(s_texColor, float3(uv, (float)mat_idx));
+return bgfxTexture2DArray(s_texColor, float3(uv, float(mat_idx)));
 }
 float4 mixed_texture_val(int adjacency_mats, float2 uv)
 {
